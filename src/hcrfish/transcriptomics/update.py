@@ -1,4 +1,5 @@
 import pickle
+import os
 from hcrfish.transcriptomics.main import generate_transcriptome_object
 
 def update_transcriptome_object(genome_path, transcriptome_path, output_filename, species):
@@ -11,26 +12,59 @@ def update_transcriptome_object(genome_path, transcriptome_path, output_filename
     if not output_filename.endswith('.pkl'):
         output_filename += '.pkl'
     
+    # Create the species-specific directory structure
+    species_dir = f"input/{species}"
+    os.makedirs(species_dir, exist_ok=True)
+    
+    # Create the full path for the output file
+    output_path = os.path.join(species_dir, output_filename)
+    
     # Serialize and save the object to a file
-    with open(output_filename, 'wb') as f:
+    with open(output_path, 'wb') as f:
         pickle.dump(transcriptome_obj, f)
     
-    print(f"Transcriptome object has been updated and saved to {output_filename}")
+    print(f"Transcriptome object has been updated and saved to {output_path}")
 
 
 # Load the transcriptome object from a file
-def load_transcriptome_object(filename):
+def load_transcriptome_object(filename, species=None):
     # Add .pkl to output_filename if it's not already there
     if not filename.endswith('.pkl'):
         filename += '.pkl'
-    try:
-        with open(filename, 'rb') as f:
-            transcriptome_obj = pickle.load(f)
-    except FileNotFoundError:
-        print(f"File {filename} not found. Please run update(genome_path, transcriptome_path, output_filename) to generate the transcriptome object.")
-        return None
-
-    return transcriptome_obj
+    
+    # Try to find the file in species directory first, then fallback to current directory
+    file_paths = []
+    
+    # If species is provided, look in the species directory first
+    if species:
+        species_path = os.path.join(f"input/{species}", filename)
+        file_paths.append(species_path)
+    
+    # Also try to find in common species directories
+    for common_species in ['dmel', 'dyak']:
+        species_path = os.path.join(f"input/{common_species}", filename)
+        if species_path not in file_paths:
+            file_paths.append(species_path)
+    
+    # Finally, try the current directory and docs directory for backward compatibility
+    file_paths.extend([filename, os.path.join("docs", filename)])
+    
+    # Try each path until we find the file
+    for filepath in file_paths:
+        try:
+            with open(filepath, 'rb') as f:
+                transcriptome_obj = pickle.load(f)
+            print(f"Loaded transcriptome object from {filepath}")
+            return transcriptome_obj
+        except FileNotFoundError:
+            continue
+    
+    # If no file found, print error message
+    print(f"File {filename} not found in any of the expected locations:")
+    for path in file_paths:
+        print(f"  - {path}")
+    print("Please run update_transcriptome_object(genome_path, transcriptome_path, output_filename, species) to generate the transcriptome object.")
+    return None
 
 
 def check_exons_contain_all_features(transcriptome_obj): 

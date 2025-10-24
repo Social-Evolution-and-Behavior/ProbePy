@@ -18,7 +18,8 @@ def download_with_rsync(
     species_identifier: str,
     file_type: str = "genome",
     output_filename: Optional[str] = None,
-    base_dir: str = "input"
+    base_dir: str = "input",
+    overwrite: bool = False
 ) -> str:
     """
     Download genomic data files using rsync.
@@ -32,6 +33,7 @@ def download_with_rsync(
         file_type (str, optional): Type of data ('genome' or 'transcriptome'). Defaults to 'genome'.
         output_filename (str, optional): Custom output filename. If None, infers from rsync_path.
         base_dir (str, optional): Base directory for downloads. Defaults to 'input'.
+        overwrite (bool, optional): Whether to overwrite existing files. Defaults to False.
         
     Returns:
         str: Path to the downloaded and processed file
@@ -62,6 +64,7 @@ def download_with_rsync(
         - Converts .fna files to .fa extension for consistency
         - Uses rsync --partial --progress for robust downloads with progress reporting
         - On macOS, removes hidden file flags for better visibility
+        - Skips download if final processed file already exists (unless overwrite=True)
     """
     if file_type not in ["genome", "transcriptome"]:
         raise ValueError("file_type must be either 'genome' or 'transcriptome'")
@@ -76,8 +79,27 @@ def download_with_rsync(
     
     output_path = output_dir / output_filename
     
+    # Determine the final processed file path (after decompression and renaming)
+    final_path = output_path
+    
+    # Handle .gz decompression prediction
+    if final_path.suffix == '.gz':
+        final_path = final_path.with_suffix('')
+    
+    # Handle .fna to .fa conversion prediction
+    if final_path.suffix == '.fna':
+        final_path = final_path.with_suffix('.fa')
+    
+    # Check if final file already exists
+    if final_path.exists() and not overwrite:
+        print(f"File already exists: {final_path}")
+        print("Skipping download (use overwrite=True to force re-download)")
+        return str(final_path)
+    
     print(f"Downloading {rsync_path}")
     print(f"Destination: {output_path}")
+    if final_path != output_path:
+        print(f"Final processed file will be: {final_path}")
     
     # Download file with rsync
     rsync_command = [
@@ -110,27 +132,96 @@ def download_with_rsync(
     
     # Handle decompression for .gz files
     if output_path.suffix == '.gz':
-        print(f"Decompressing {output_path}")
+        decompressed_path = output_path.with_suffix('')
         
-        gunzip_command = ["gunzip", str(output_path)]
-        try:
-            subprocess.run(gunzip_command, check=True)
-            # Update path to point to decompressed file
-            output_path = output_path.with_suffix('')
+        # Check if decompressed file already exists
+        if decompressed_path.exists() and not overwrite:
+            print(f"Decompressed file already exists: {decompressed_path}")
+            print("Removing downloaded .gz file")
+            if output_path.exists():
+                output_path.unlink()  # Remove the .gz file since we have the decompressed version
+            output_path = decompressed_path
+        else:
+            print(f"Decompressing {output_path}")
             
-        except subprocess.CalledProcessError as e:
-            raise subprocess.CalledProcessError(
-                e.returncode,
-                e.cmd,
-                f"Decompression failed: {e}"
-            )
+            # Check if the .gz file actually exists before trying to decompress
+            if not output_path.exists():
+                raise FileNotFoundError(f"Cannot decompress: .gz file not found at {output_path}")
+            
+            # Check if the file is actually gzipped by trying to read the magic number
+            try:
+                with open(output_path, 'rb') as f:
+                    magic = f.read(2)
+                    if magic != b'\x1f\x8b':
+                        print(f"Warning: File {output_path} does not appear to be gzipped (magic number: {magic.hex()})")
+                        print("Treating as already decompressed and renaming...")
+                        # Rename the file to remove .gz extension
+                        output_path.rename(decompressed_path)
+                        output_path = decompressed_path
+                        # Skip to the next processing step
+                    else:
+                        # File is properly gzipped, proceed with decompression
+                        gunzip_command = ["gunzip", str(output_path)]
+                        try:
+                            result = subprocess.run(gunzip_command, check=True, capture_output=True, text=True)
+                            # Update path to point to decompressed file
+                            output_path = decompressed_path
+                            print(f"Successfully decompressed to: {output_path}")
+                            
+                        except subprocess.CalledProcessError as e:
+                            # Provide more detailed error information
+                            error_msg = f"Decompression failed for {output_path}"
+                            if e.stderr:
+                                error_msg += f": {e.stderr.strip()}"
+                            if e.stdout:
+                                error_msg += f" (stdout: {e.stdout.strip()})"
+                            
+                            # Check if the file might already be decompressed
+                            if decompressed_path.exists():
+                                print(f"Warning: gunzip failed, but decompressed file exists: {decompressed_path}")
+                                print("Using existing decompressed file")
+                                if output_path.exists():
+                                    output_path.unlink()  # Remove the problematic .gz file
+                                output_path = decompressed_path
+                            else:
+                                raise subprocess.CalledProcessError(
+                                    e.returncode,
+                                    e.cmd,
+                                    error_msg
+                                )
+            except Exception as e:
+                print(f"Warning: Could not check file format: {e}")
+                # Fall back to trying gunzip anyway
+                gunzip_command = ["gunzip", str(output_path)]
+                try:
+                    result = subprocess.run(gunzip_command, check=True, capture_output=True, text=True)
+                    output_path = decompressed_path
+                    print(f"Successfully decompressed to: {output_path}")
+                except subprocess.CalledProcessError as e:
+                    error_msg = f"Decompression failed for {output_path}: {e.stderr if e.stderr else str(e)}"
+                    if decompressed_path.exists():
+                        print(f"Warning: gunzip failed, but decompressed file exists: {decompressed_path}")
+                        print("Using existing decompressed file")
+                        if output_path.exists():
+                            output_path.unlink()
+                        output_path = decompressed_path
+                    else:
+                        raise subprocess.CalledProcessError(e.returncode, e.cmd, error_msg)
     
     # Convert .fna to .fa for consistency
     if output_path.suffix == '.fna':
         new_path = output_path.with_suffix('.fa')
-        output_path.rename(new_path)
-        output_path = new_path
-        print(f"Renamed to {output_path}")
+        
+        # Check if .fa file already exists
+        if new_path.exists() and not overwrite:
+            print(f"Converted file already exists: {new_path}")
+            print("Removing .fna file")
+            output_path.unlink()  # Remove the .fna file since we have the .fa version
+            output_path = new_path
+        else:
+            output_path.rename(new_path)
+            output_path = new_path
+            print(f"Renamed to {output_path}")
     
     # Remove hidden file flags on macOS
     try:
