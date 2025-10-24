@@ -11,14 +11,9 @@ import os
 from pathlib import Path
 
 import hcrfish
-from hcrfish import (
-    design_hcr_probes,
-    reverse_complement,
-    get_amplifier,
-    check_blast_tools,
-    white_plotting,
-    black_plotting
-)
+from hcrfish.hcr.utils import design_hcr_probes, reverse_complement, get_amplifier
+from hcrfish.blast.blast_utils import check_blast_tools
+from hcrfish.plotting.utils import white_plotting, black_plotting
 from hcrfish.transcriptomics.classes import Transcriptome, Gene, Transcript
 
 
@@ -279,7 +274,7 @@ class TestPerformance:
             # Add 2-3 transcripts per gene
             for j in range(2 + (i % 2)):  # 2 or 3 transcripts
                 transcript = Transcript(f"NM_{i:03d}_{j}")
-                transcript.mrna_sequence = f"{'ATCG' * 50}{'N' * i % 10}"  # Unique sequences
+                transcript.mrna_sequence = f"{'ATCG' * 50}{'N' * (i % 10)}"  # Unique sequences
                 gene.add_transcript(transcript)
             
             transcriptome.add_gene(gene)

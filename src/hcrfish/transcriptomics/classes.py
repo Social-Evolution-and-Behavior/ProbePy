@@ -183,8 +183,16 @@ class Gene:
             raise ValueError("No transcripts found for this gene")
         else:
             bounds = [transcript.get_bounds() for transcript in self.transcripts]
-            bound_lengths = [abs(x[1] - x[0]) for x in bounds]
-            return self.transcripts[np.argmax(bound_lengths)] 
+            # Filter out None bounds and calculate lengths
+            valid_bounds = [(i, b) for i, b in enumerate(bounds) if b is not None]
+            if not valid_bounds:
+                # If no valid bounds, return first transcript
+                return self.transcripts[0]
+            bound_lengths = [abs(b[1] - b[0]) for i, b in valid_bounds]
+            max_idx = np.argmax(bound_lengths)
+            # Return transcript corresponding to longest bounds
+            transcript_idx = valid_bounds[max_idx][0]
+            return self.transcripts[transcript_idx] 
 
     def __str__(self):
         return f"Gene(name={self.name}, id={self.id}, transcripts={len(self.transcripts)}, chromosome={self.chromosome}, strand={self.strand})"
@@ -201,7 +209,7 @@ class Transcript:
         self.dna_sequence = "" 
         self.chromosome = ""
         self.strand = ""
-        self.position = None
+        self.position: Optional[Tuple[int, int]] = None
         self.utrs = []
         self.exons = []
         self.cds = [] 

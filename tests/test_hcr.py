@@ -79,8 +79,8 @@ class TestGetAmplifier:
         assert len(up) == 18
         assert len(dn) == 18
         
-        # Check that sequences contain only valid DNA bases
-        valid_bases = set("ATCG")
+        # Check that sequences contain only valid DNA bases (including lowercase)
+        valid_bases = set("ATCGatcg")
         assert set(upspc).issubset(valid_bases)
         assert set(dnspc).issubset(valid_bases)
         assert set(up).issubset(valid_bases)

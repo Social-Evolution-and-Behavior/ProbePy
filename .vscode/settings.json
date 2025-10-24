@@ -3,12 +3,6 @@
     "python.pythonPath": "./.venv/bin/python",
     "python.terminal.activateEnvironment": true,
     "python.terminal.activateEnvInCurrentTerminal": true,
-    "jupyter.kernels.filter": [
-        {
-            "path": "./.venv/bin/python",
-            "type": "pythonEnvironment"
-        }
-    ],
     "jupyter.defaultKernel": "./.venv/bin/python",
     "jupyter.interactiveWindow.textEditor.executeSelection": true,
     "python.analysis.extraPaths": [
@@ -44,5 +38,12 @@
             "depth": 3,
             "includeAllSymbols": true
         }
-    ]
+    ],
+    "jupyter.kernels.excludePythonEnvironments": [
+        "./.venv/bin/python"
+    ],
+    "python.languageServer": "None",
+    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.autoSearchPaths": false,
+    "python.analysis.diagnosticMode": "openFilesOnly"
 }
