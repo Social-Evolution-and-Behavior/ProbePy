@@ -26,7 +26,7 @@ A comprehensive Python package for designing HCR-FISH (Hybridization Chain React
 
 1. **Clone the repository:**
 ```bash
-git clone <repository-url>
+git clone https://github.com/GiacomoGlotzer/hcr_probe_design_general
 cd hcr_probe_design_general
 ```
 
@@ -133,18 +133,6 @@ transcript = gene.get_transcript_longest_bounds()
 # Design 30 B3 probes
 probes, regions, positions = hcrfish.design_hcr_probes(transcript.mrna_sequence, "B3")
 selected_probes = probes[:30]  # Take first 30 probes
-```
-
-### Batch processing multiple genes
-```python
-genes = ["Or9a", "dsx", "fru"]
-all_probes = {}
-
-for gene_name in genes:
-    gene = tr.get_gene(gene_name)
-    transcript = gene.get_transcript_longest_bounds()
-    probes, regions, positions = hcrfish.design_hcr_probes(transcript.mrna_sequence, "B3")
-    all_probes[gene_name] = probes[:20]  # 20 probes per gene
 ```
 
 ## Output Formats
