@@ -1,43 +1,44 @@
-# HCR-FISH Probe Design Tool
+## probeMe
 
-[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+> **Fluorescent *in situ* Hybridization Probe Design Tool**
 
-A comprehensive Python package for designing HCR-FISH (Hybridization Chain Reaction Fluorescent In Situ Hybridization) probes compatible with the HCR v3.0 amplifier system. This tool enables researchers to design highly specific, custom probes for any species with available genome and transcriptome data.
+A comprehensive Python package for designing fluorescent *in situ* hybridization (FISH) probes compatible with the HCR v3.0 B-system amplification system. 
 
 ## Features
 
-- **Automated probe design**: Design HCR v3.0 compatible probe pairs with optimal GC content and minimal off-target binding
+- **Automated probe design**: Design HCR v3.0 compatible probe pairs with optimal GC content and prevent off-target binding
 - **Multi-species support**: Works with any organism with genome and transcriptome annotations
 - **BLAST-based specificity verification**: Ensures probe specificity using NCBI BLAST+ tools
 - **Comprehensive visualization**: Generate publication-ready plots showing probe locations on gene structures
 - **Flexible output formats**: Export probes in IDT-compatible Excel format for direct ordering
-- **Built-in quality control**: Automatic filtering for problematic sequences (repeats, extreme GC content)
 
-## Installation
+## 1. Installation
 
-### Prerequisites
-
-- Python 3.11 or higher
-- Poetry (for dependency management)
-- NCBI BLAST+ command line tools
-
-### Quick Setup
-
-1. **Clone the repository:**
 ```bash
 git clone https://github.com/GiacomoGlotzer/hcr_probe_design_general
 cd hcr_probe_design_general
 ```
 
-2. **Install dependencies with Poetry:**
+**Requirements:** Python 3.11+, Poetry, NCBI BLAST+ command line tools
+
+
+### Install dependencies with Poetry
+
 ```bash
 poetry install
 poetry shell
 ```
 
-3. **Install NCBI BLAST+ tools:**
-The package will automatically attempt to install BLAST+ tools when first used. For manual installation:
+### Install NCBI BLAST+ tools
+
+The package will facilitate the installation of NCBI BLAST+ command line tools. 
+
+```
+import hcrfish
+hcrfish.install_blast_tools()
+```
+
+Alternatively, install it yourself: 
 - **macOS**: `brew install blast`
 - **Ubuntu/Debian**: `sudo apt-get install ncbi-blast+`
 - **Windows**: Download from [NCBI BLAST+](https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/)
@@ -166,12 +167,13 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
 
 ## Citation
 
-If you use this tool in your research, please cite:
-
 ```
-HCR-FISH Probe Design Tool
-Giacomo Glotzer, The Rockefeller University
-https://github.com/your-username/hcr_probe_design_general
+@software{hcr_probe_design_general,
+  title={CRANTpy: Python Access to Clonal Raider ANT Brain Datasets},
+  author={CRANTb Community},
+  url={https://github.com/Social-Evolution-and-Behavior/crantpy},
+  year={2025}
+}
 ```
 
 ## License
