@@ -12,7 +12,7 @@ A comprehensive Python package for designing fluorescent *in situ* hybridization
 - **Comprehensive visualization**: Generate publication-ready plots showing probe locations on gene structures
 - **Flexible output formats**: Export probes in IDT-compatible Excel format for direct ordering
 
-## 1. Installation
+## Installation
 
 ```bash
 git clone https://github.com/GiacomoGlotzer/hcr_probe_design_general
@@ -38,7 +38,7 @@ import hcrfish
 hcrfish.install_blast_tools()
 ```
 
-Alternatively, install it yourself: 
+Alternatively, you can install it yourself: 
 - **macOS**: `brew install blast`
 - **Ubuntu/Debian**: `sudo apt-get install ncbi-blast+`
 - **Windows**: Download from [NCBI BLAST+](https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/)
@@ -51,7 +51,7 @@ Alternatively, install it yourself:
 import hcrfish
 
 # Check BLAST tools availability
-hcrfish.blast.check_blast_tools()
+hcrfish.check_blast_tools()
 
 # Load transcriptome object (pre-built or create new)
 transcriptome = hcrfish.load_transcriptome_object("species_transcriptome")
@@ -69,43 +69,14 @@ print(f"Designed {len(probes)} probe pairs for {gene.name}")
 
 ### 2. Complete Pipeline Example
 
-See `design-probes.ipynb` for a complete walkthrough including:
+Visit the [docs] for a complete walkthrough including:
+- Downloading data with rsync
+- Building BLAST databases 
 - Transcriptome loading and gene selection
 - BLAST-based specificity checking
 - Probe design and filtering
 - Visualization and export
 
-## Core Modules
-
-### `hcrfish.transcriptomics`
-- **Classes**: `Transcriptome`, `Gene`, `Transcript`, `Exon`, `CDS`, `UTR`, `Intron`
-- **Functions**: Build and manage transcriptome objects from GTF/GFF files
-
-### `hcrfish.hcr`
-- **`design_hcr_probes()`**: Core probe design algorithm
-- **`get_amplifier()`**: HCR v3.0 amplifier sequences (B1-B5)
-- **`reverse_complement()`**: DNA sequence utilities
-
-### `hcrfish.blast`
-- **`check_blast_tools()`**: Verify BLAST+ installation
-- **`run_blastn()`**: Automated BLAST searches for specificity
-- **`run_makeblastdb()`**: Database creation utilities
-
-### `hcrfish.plotting`
-- **`white_plotting()`** / **`black_plotting()`**: Publication-ready plot themes
-- Integration with `pygenomeviz` for gene structure visualization
-
-## HCR v3.0 Amplifier Support
-
-The package supports all HCR v3.0 amplifiers:
-
-| Amplifier | Upstream Initiator | Downstream Initiator |
-|-----------|-------------------|---------------------|
-| B1 | GAGGAGGGCAGCAAACGG | GAAGAGTCTTCCTTTACG |
-| B2 | CCTCGTAAATCCTCATCA | ATCATCCAGTAAACCGCC |
-| B3 | GTCCCTGCCTCTATATCT | CCACTCAACTTTAACCCG |
-| B4 | CCTCAACCTACCTCCAAC | TCTCACCATATTCGCTTC |
-| B5 | CTCACTCCCAATCTCTAT | CTACCCTACAAATCCAAT |
 
 ## Probe Design Algorithm
 
@@ -122,19 +93,6 @@ The probe design follows these key principles:
 
 ## Example Workflows
 
-### Design probes for a single gene
-```python
-# Load transcriptome
-tr = hcrfish.load_transcriptome_object("mel_transcriptome")
-
-# Select gene and transcript
-gene = tr.get_gene("dsx")
-transcript = gene.get_transcript_longest_bounds()
-
-# Design 30 B3 probes
-probes, regions, positions = hcrfish.design_hcr_probes(transcript.mrna_sequence, "B3")
-selected_probes = probes[:30]  # Take first 30 probes
-```
 
 ## Output Formats
 
@@ -145,40 +103,11 @@ selected_probes = probes[:30]  # Take first 30 probes
 
 ### Probe Binding Regions
 - Detailed information about where each probe binds
-- Coordinates in both transcript and genomic space
 - Useful for troubleshooting and analysis
 
 ### Visualization
 - Gene structure plots with probe locations
-- Publication-ready PNG exports
-- Both light and dark themes available
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
-
-### Development Setup
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Install development dependencies: `poetry install --with dev`
-4. Run tests: `pytest`
-5. Submit pull request
-
-## Citation
-
-```
-@software{hcr_probe_design_general,
-  title={CRANTpy: Python Access to Clonal Raider ANT Brain Datasets},
-  author={CRANTb Community},
-  url={https://github.com/Social-Evolution-and-Behavior/crantpy},
-  year={2025}
-}
-```
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 
@@ -188,7 +117,7 @@ For questions, issues, or feature requests:
 
 ## Acknowledgments
 
-- HCR v3.0 system developed by Molecular Instruments
+- HCR v3.0 system developed by Molecular Instruments 
 - Built with Python scientific computing stack (NumPy, Pandas, Matplotlib)
 - BLAST integration via NCBI BLAST+ suite
 - Visualization powered by pygenomeviz 
