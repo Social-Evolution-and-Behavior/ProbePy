@@ -20,7 +20,7 @@ from hcrfish.hcr.utils import (
     design_hcr_probes,
     blast_gene,
     get_probes_IDT,
-    export_probe_binding_regions_plot,
+    get_probe_binding_regions_plot,
     check_probe_availability
 )
 from hcrfish.transcriptomics.classes import Gene, Transcriptome
@@ -149,11 +149,9 @@ class TestMockGeneAndTranscriptome:
         return transcriptome
         
     @pytest.fixture
-    def temp_dir(self):
+    def temp_dir(self, tmp_path):
         """Create a temporary directory for testing."""
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir)
+        return tmp_path
         
     def test_check_probe_availability_basic(self, mock_transcriptome, temp_dir):
         """Test basic probe availability checking."""
@@ -196,11 +194,16 @@ class TestMockGeneAndTranscriptome:
                     assert result >= 0
                 except Exception as e:
                     # Expected due to missing implementation details
-                    assert "Gene" in str(e) or "transcript" in str(e) or "sequence" in str(e)
+                    assert any(word in str(e).lower() for word in ["gene", "transcript", "sequence", "blast"])
 
 
 class TestBlastGeneFunction:
     """Test BLAST gene analysis functionality."""
+    
+    @pytest.fixture
+    def temp_dir(self, tmp_path):
+        """Create a temporary directory for testing."""
+        return tmp_path
     
     @pytest.fixture
     def mock_gene_with_sequence(self):
@@ -252,6 +255,11 @@ class TestGetProbesIDT:
     """Test IDT probe export functionality."""
     
     @pytest.fixture
+    def temp_dir(self, tmp_path):
+        """Create a temporary directory for testing."""
+        return tmp_path
+    
+    @pytest.fixture
     def mock_gene_with_probes(self):
         """Create a mock gene with unique sequence."""
         gene = Mock(spec=Gene)
@@ -293,8 +301,13 @@ class TestGetProbesIDT:
 class TestExportPlot:
     """Test genomic plot export functionality."""
     
+    @pytest.fixture
+    def temp_dir(self, tmp_path):
+        """Create a temporary directory for testing."""
+        return tmp_path
+    
     def test_export_plot_parameter_validation(self, temp_dir):
-        """Test parameter validation for export_probe_binding_regions_plot."""
+        """Test parameter validation for get_probe_binding_regions_plot."""
         mock_transcriptome = Mock(spec=Transcriptome)
         mock_gene = Mock(spec=Gene)
         mock_gene.name = "test_gene"
@@ -302,12 +315,26 @@ class TestExportPlot:
         mock_transcriptome.get_gene.return_value = mock_gene
         
         with pytest.raises(ValueError, match="regions"):
-            export_probe_binding_regions_plot(
+            get_probe_binding_regions_plot(
                 gene_name="test_gene",
                 transcriptome=mock_transcriptome,
                 main_directory=temp_dir,
                 species_identifier="test_species"
             )
+    
+    def test_get_probe_binding_regions_plot_save_parameter(self):
+        """Test that get_probe_binding_regions_plot accepts save parameter."""
+        import inspect
+        
+        sig = inspect.signature(get_probe_binding_regions_plot)
+        
+        # Check that 'save' parameter exists with default value True
+        assert 'save' in sig.parameters
+        save_param = sig.parameters['save']
+        assert save_param.default is True
+        
+        # Check return type annotation indicates matplotlib Figure
+        assert sig.return_annotation != inspect.Signature.empty
 
 
 class TestIntegration:
@@ -333,11 +360,13 @@ class TestIntegration:
         expected_start = ['gene_name', 'transcriptome', 'main_directory', 'species_identifier']
         assert params[:4] == expected_start
         
-        # Check export_probe_binding_regions_plot signature
-        sig = inspect.signature(export_probe_binding_regions_plot)
+        # Check get_probe_binding_regions_plot signature
+        sig = inspect.signature(get_probe_binding_regions_plot)
         params = list(sig.parameters.keys())
         expected_start = ['gene_name', 'transcriptome', 'main_directory', 'species_identifier']
         assert params[:4] == expected_start
+        # Also check for optional 'save' parameter
+        assert 'save' in params
         
         # Check check_probe_availability signature
         sig = inspect.signature(check_probe_availability)
@@ -353,7 +382,7 @@ class TestIntegration:
         functions_to_check = [
             blast_gene,
             get_probes_IDT, 
-            export_probe_binding_regions_plot,
+            get_probe_binding_regions_plot,
             check_probe_availability
         ]
         

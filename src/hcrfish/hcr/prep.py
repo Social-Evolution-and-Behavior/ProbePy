@@ -18,9 +18,9 @@ def download_with_rsync(
     species_identifier: str,
     file_type: str = "genome",
     output_filename: Optional[str] = None,
-    base_dir: str = "input",
+    base_dir: str = "",
     overwrite: bool = False
-) -> str:
+):
     """
     Download genomic data files using rsync.
     
@@ -34,9 +34,6 @@ def download_with_rsync(
         output_filename (str, optional): Custom output filename. If None, infers from rsync_path.
         base_dir (str, optional): Base directory for downloads. Defaults to 'input'.
         overwrite (bool, optional): Whether to overwrite existing files. Defaults to False.
-        
-    Returns:
-        str: Path to the downloaded and processed file
         
     Raises:
         ValueError: If file_type is not 'genome' or 'transcriptome'
@@ -70,17 +67,17 @@ def download_with_rsync(
         raise ValueError("file_type must be either 'genome' or 'transcriptome'")
     
     # Create output directory
-    output_dir = Path(base_dir) / species_identifier / file_type
-    output_dir.mkdir(parents=True, exist_ok=True)
-    
+    output_dir = os.path.join(base_dir, "input", species_identifier, file_type)
+    os.makedirs(output_dir, exist_ok=True)
+
     # Determine output filename
     if output_filename is None:
         output_filename = rsync_path.split('/')[-1]
     
-    output_path = output_dir / output_filename
-    
+    output_path = Path(output_dir) / output_filename
+
     # Determine the final processed file path (after decompression and renaming)
-    final_path = output_path
+    final_path = Path(output_path)
     
     # Handle .gz decompression prediction
     if final_path.suffix == '.gz':
@@ -235,14 +232,13 @@ def download_with_rsync(
         pass
     
     print(f"File ready at: {output_path}")
-    return str(output_path)
 
 
 def export_mrna_to_fasta(
     transcriptome: Transcriptome,
     species_identifier: str,
-    base_dir: str = "input"
-) -> tuple[str, str]:
+    base_dir: str = ""
+):
     """
     Export mRNA sequences to FASTA files for BLAST database creation.
     
@@ -254,9 +250,6 @@ def export_mrna_to_fasta(
         transcriptome (Transcriptome): Transcriptome object containing gene and transcript data
         species_identifier (str): Species identifier for directory organization (e.g., 'dmel', 'dyak')
         base_dir (str, optional): Base directory for output files. Defaults to 'input'.
-        
-    Returns:
-        tuple[str, str]: Paths to (no_introns_fasta, yes_introns_fasta)
         
     Raises:
         ValueError: If transcriptome is empty or contains no valid transcripts
@@ -278,20 +271,17 @@ def export_mrna_to_fasta(
     """
     if not transcriptome.genes:
         raise ValueError("Transcriptome object is empty - no genes found")
-    
-    # Set up output directories
-    base_path = Path(base_dir) / species_identifier / "transcriptome"
-    
-    no_introns_dir = base_path / "mRNA_no_introns"
-    yes_introns_dir = base_path / "mRNA_yes_introns"
-    
-    no_introns_dir.mkdir(parents=True, exist_ok=True)
-    yes_introns_dir.mkdir(parents=True, exist_ok=True)
+
+    no_introns_dir = os.path.join(base_dir, "input", species_identifier, "transcriptome", "mRNA_no_introns")
+    yes_introns_dir = os.path.join(base_dir, "input", species_identifier, "transcriptome", "mRNA_yes_introns")
+
+    os.makedirs(no_introns_dir, exist_ok=True)
+    os.makedirs(yes_introns_dir, exist_ok=True)
     
     # Define output file paths
-    no_introns_path = no_introns_dir / "mRNA_no_introns.fasta"
-    yes_introns_path = yes_introns_dir / "mRNA_yes_introns.fasta"
-    
+    no_introns_path = os.path.join(no_introns_dir, "mRNA_no_introns.fasta")
+    yes_introns_path = os.path.join(yes_introns_dir, "mRNA_yes_introns.fasta")
+
     print(f"Exporting mRNA sequences for {len(transcriptome.genes)} genes...")
     
     transcripts_no_introns = 0
@@ -334,15 +324,12 @@ def export_mrna_to_fasta(
     
     if transcripts_no_introns == 0 and transcripts_yes_introns == 0:
         raise ValueError("No transcripts with sequence data found in transcriptome")
-    
-    return str(no_introns_path), str(yes_introns_path)
 
 
 def create_blast_databases(
-    fasta_paths: tuple[str, str],
     species_identifier: str,
-    base_dir: str = "input"
-) -> tuple[str, str]:
+    base_dir: str = ""
+):
     """
     Create BLAST nucleotide databases from FASTA files.
     
@@ -351,12 +338,12 @@ def create_blast_databases(
     off-target binding sites during probe design.
     
     Args:
-        fasta_paths (tuple[str, str]): Paths to (no_introns_fasta, yes_introns_fasta)
         species_identifier (str): Species identifier for database organization (e.g., 'dmel', 'dyak')
-        base_dir (str, optional): Base directory containing FASTA files. Defaults to 'input'.
+        base_dir (str, optional): Base directory containing FASTA files. Defaults to ''.
         
     Returns:
-        tuple[str, str]: Base paths to (no_introns_db, yes_introns_db) without file extensions
+        None: Databases are created in place; paths can be inferred from species_identifier
+        
         
     Raises:
         FileNotFoundError: If FASTA files or makeblastdb command are not found
@@ -365,8 +352,7 @@ def create_blast_databases(
         
     Examples:
         >>> # After exporting FASTA files
-        >>> fasta_paths = export_mrna_to_fasta(transcriptome, "dmel")
-        >>> db_paths = create_blast_databases(fasta_paths, "dmel")
+        >>> db_paths = create_blast_databases("dmel", "/path/to/base")
         >>> no_introns_db, yes_introns_db = db_paths
         >>> print(f"BLAST databases created at: {db_paths}")
         
@@ -377,8 +363,9 @@ def create_blast_databases(
         - Output database names match the pattern used in blast_gene function
         - Verifies database creation by checking for required files
     """
-    no_introns_fasta, yes_introns_fasta = fasta_paths
-    
+    no_introns_fasta = os.path.join(base_dir, "input", species_identifier, "transcriptome", "mRNA_no_introns", "mRNA_no_introns.fasta")
+    yes_introns_fasta = os.path.join(base_dir, "input", species_identifier, "transcriptome", "mRNA_yes_introns", "mRNA_yes_introns.fasta")
+
     # Verify input files exist
     if not Path(no_introns_fasta).exists():
         raise FileNotFoundError(f"FASTA file not found: {no_introns_fasta}")
@@ -400,10 +387,9 @@ def create_blast_databases(
         )
     
     # Define output database paths (without extensions)
-    base_path = Path(base_dir) / species_identifier / "transcriptome"
-    no_introns_db = str(base_path / "mRNA_no_introns" / "mRNA_no_introns")
-    yes_introns_db = str(base_path / "mRNA_yes_introns" / "mRNA_yes_introns")
-    
+    no_introns_db = os.path.join(base_dir, "input", species_identifier, "transcriptome", "mRNA_no_introns", "mRNA_no_introns")
+    yes_introns_db = os.path.join(base_dir, "input", species_identifier, "transcriptome", "mRNA_yes_introns", "mRNA_yes_introns")
+
     print("Creating BLAST databases...")
     
     # Create database for mature mRNA (no introns)
@@ -472,4 +458,3 @@ def create_blast_databases(
             print(f"Missing files: {missing_files}")
     
     print("BLAST database creation completed")
-    return no_introns_db, yes_introns_db

@@ -247,10 +247,10 @@ def reverse_string(string: str) -> str:
 def blast_gene(
     gene_name: str,
     transcriptome: Transcriptome,
-    main_directory: str,
     species_identifier: str,
     permitted_off_targets: Optional[List[str]] = None,
-    length_thresh: int = 50
+    length_thresh: int = 50,
+    base_dir: str = "",
 ) -> None:
     """
     BLAST gene sequences against transcriptome databases to identify potential off-targets.
@@ -260,9 +260,12 @@ def blast_gene(
     interfere with probe specificity.
     
     Args:
-        gene: Gene object with name and target_sequence attributes
-        main_directory (str): Base directory for input/output files
+        gene_name (str): Name of the target gene
+        transcriptome (Transcriptome): Transcriptome object with gene annotation
         species_identifier (str): Species identifier for database paths
+        permitted_off_targets (Optional[List[str]], optional): List of permitted off-target keywords. Defaults to None.
+        length_thresh (int, optional): Minimum alignment length threshold. Defaults to 50.
+        base_dir (str, optional): Base directory for input/output files. Defaults to "".
         
     Raises:
         Exception: If BLAST+ tools are not available
@@ -270,8 +273,8 @@ def blast_gene(
         subprocess.CalledProcessError: If BLAST commands fail
         
     Notes:
-        - Creates FASTA files in gene_seq_blast_input/
-        - Outputs results to gene_seq_blast_output/
+        - Creates FASTA files in output/{species}/gene_seq_blast_input/
+        - Outputs results to output/{species}/gene_seq_blast_output/
         - Uses ungapped BLAST with strict parameters for sensitivity
         - Searches both mature and pre-mRNA transcriptomes
     """
@@ -293,33 +296,30 @@ def blast_gene(
         raise ValueError("Gene does not have a target_sequence attribute.")
     
     # Define BLAST database paths
-    transcriptome_no_introns_db = (
-        f"input/{species_identifier}/transcriptome/mRNA_no_introns/mRNA_no_introns"
-    )
-    transcriptome_yes_introns_db = (
-        f"input/{species_identifier}/transcriptome/mRNA_yes_introns/mRNA_yes_introns"
-    )
+    transcriptome_no_introns_db = os.path.join(base_dir, "input", species_identifier, "transcriptome", "mRNA_no_introns", "mRNA_no_introns")
+    transcriptome_yes_introns_db = os.path.join(base_dir, "input", species_identifier, "transcriptome", "mRNA_yes_introns", "mRNA_yes_introns")
+    
 
     # Prepare input directory and FASTA file
-    input_dir = os.path.join(main_directory, 'gene_seq_blast_input')
-    os.makedirs(input_dir, exist_ok=True)
+    gene_seq_blast_input_dir = os.path.join(base_dir, "output", species_identifier, 'gene_seq_blast_input')
+    os.makedirs(gene_seq_blast_input_dir, exist_ok=True)
 
     # Clear existing files in input directory
-    for file in os.listdir(input_dir):
-        os.remove(os.path.join(input_dir, file))
+    for file in os.listdir(gene_seq_blast_input_dir):
+        os.remove(os.path.join(gene_seq_blast_input_dir, file))
 
     # Write gene sequence to FASTA file
-    input_fasta_path = os.path.join(input_dir, f"{gene.name}.fasta")
+    input_fasta_path = os.path.join(gene_seq_blast_input_dir, f"{gene.name}.fasta")
     with open(input_fasta_path, 'w') as f:
         f.write(f">{gene.name}\n{gene.target_sequence}")
 
     # Prepare output directory
-    output_dir = os.path.join(main_directory, 'gene_seq_blast_output')
-    os.makedirs(output_dir, exist_ok=True)
+    gene_seq_blast_output_dir = os.path.join(base_dir, "output", species_identifier, 'gene_seq_blast_output')
+    os.makedirs(gene_seq_blast_output_dir, exist_ok=True)
 
     # Clear existing files in output directory
-    for file in os.listdir(output_dir):
-        os.remove(os.path.join(output_dir, file))
+    for file in os.listdir(gene_seq_blast_output_dir):
+        os.remove(os.path.join(gene_seq_blast_output_dir, file))
 
     # BLAST parameters for sensitive detection
     blast_params = [
@@ -327,6 +327,7 @@ def blast_gene(
         f"-query {input_fasta_path}",
         "-ungapped",
         "-word_size 15",
+        "-strand plus",
         "-reward 1",
         "-penalty -5",
         "-dust no",
@@ -338,7 +339,7 @@ def blast_gene(
 
     # BLAST against mature mRNA database (no introns)
     output_path_no_introns = os.path.join(
-        output_dir, f"{gene.name}_blasted_no_introns.csv"
+        gene_seq_blast_output_dir, f"{gene.name}_blasted_no_introns.csv"
     )
     command_no_introns = " ".join([
         "blastn"
@@ -354,7 +355,7 @@ def blast_gene(
 
     # BLAST against pre-mRNA database (with introns)
     output_path_yes_introns = os.path.join(
-        output_dir, f"{gene.name}_blasted_yes_introns.csv"
+        gene_seq_blast_output_dir, f"{gene.name}_blasted_yes_introns.csv"
     )
     command_yes_introns = " ".join([
         "blastn"
@@ -368,22 +369,22 @@ def blast_gene(
     except subprocess.CalledProcessError as e:
         raise Exception(f"BLAST against introns database failed: {e}")
 
-    print(f"BLAST searches completed for {gene.name}. Results saved to {output_dir}")
+    print(f"BLAST searches completed for {gene.name}. Results saved to {gene_seq_blast_output_dir}")
 
     
     if permitted_off_targets is None:
         permitted_off_targets = []
     
     # Define input and output directories
-    input_dir = os.path.join(main_directory, species_identifier, 'gene_seq_blast_output')
-    output_dir = os.path.join(main_directory, species_identifier, 'gene_seq_unique_regions')
+    gene_seq_blast_output_dir = os.path.join(base_dir, "output", species_identifier, 'gene_seq_blast_output')
+    gene_seq_unique_regions_dir = os.path.join(base_dir, "output", species_identifier, 'gene_seq_unique_regions')
     
     # Create output directory
-    os.makedirs(output_dir, exist_ok=True)
-    
+    os.makedirs(gene_seq_unique_regions_dir, exist_ok=True)
+
     # Clear existing files in output directory
-    for file in os.listdir(output_dir):
-        os.remove(os.path.join(output_dir, file))
+    for file in os.listdir(gene_seq_unique_regions_dir):
+        os.remove(os.path.join(gene_seq_unique_regions_dir, file))
 
     # Define column names for BLAST output format
     blast_columns = [
@@ -395,14 +396,14 @@ def blast_gene(
     # Load BLAST results from both databases
     try:
         # No introns results
-        no_introns_path = os.path.join(input_dir, f"{gene.name}_blasted_no_introns.csv")
+        no_introns_path = os.path.join(gene_seq_blast_output_dir, f"{gene.name}_blasted_no_introns.csv")
         blast_results_no_introns = pd.read_csv(
             no_introns_path, header=None, names=blast_columns
         )
         blast_results_no_introns['source'] = 'no_introns'
 
         # With introns results  
-        yes_introns_path = os.path.join(input_dir, f"{gene.name}_blasted_yes_introns.csv")
+        yes_introns_path = os.path.join(gene_seq_blast_output_dir, f"{gene.name}_blasted_yes_introns.csv")
         blast_results_yes_introns = pd.read_csv(
             yes_introns_path, header=None, names=blast_columns
         )
@@ -415,7 +416,7 @@ def blast_gene(
     blast_results = pd.concat([blast_results_no_introns, blast_results_yes_introns], axis=0)
 
     # Filter by alignment length threshold
-    blast_results = blast_results[blast_results['length'] >= length_thresh]
+    blast_results = blast_results[blast_results['length'] >= length_thresh].reset_index(drop=True)
 
     # Annotate with subject gene information
     blast_results['subject_gene_id'] = blast_results.apply(
@@ -430,6 +431,9 @@ def blast_gene(
     blast_results['same_gene'] = (
         blast_results['query_id'] == blast_results['subject_gene_id']
     )
+
+    # Remove empty strings from permitted_off_targets
+    permitted_off_targets = [term for term in permitted_off_targets if term]
 
     # Identify permitted off-targets
     blast_results['permitted_off_target'] = blast_results['subject_id'].apply(
@@ -459,23 +463,24 @@ def blast_gene(
     # Store results in gene object
     gene.unique_sequence = sequence
     gene.blast_results = blast_results
+    gene.off_targets = off_targets
 
     # Export masked sequence to file
-    output_fasta_path = os.path.join(output_dir, f"{gene.name}_unique.fasta")
+    output_fasta_path = os.path.join(gene_seq_unique_regions_dir, f"{gene.name}_unique.fasta")
     with open(output_fasta_path, 'w') as f:
         f.write(f">{gene.name}\n{sequence}")
 
-    print(f"Unique regions have been annotated and exported to {output_dir}")
+    print(f"Unique regions have been annotated and exported to {gene_seq_unique_regions_dir}")
     print(f"Masked {len(off_targets)} off-target regions from {gene.name}")
 
 
 def get_probes_IDT(
     gene_name: str,
     transcriptome: Transcriptome,
-    main_directory: str,
     species_identifier: str,
     amplifier: str = "B1",
-    n_probes: int = 30
+    n_probes: int = 30,
+    base_dir: str = "",
 ) -> None:
     """
     Design HCR-FISH probes and export them in IDT-compatible format.
@@ -485,12 +490,12 @@ def get_probes_IDT(
     DNA Technologies).
     
     Args:
-        gene: Gene object with unique_sequence attribute (from process_gene_blast_results)
-        main_directory (str): Base directory for output files
+        gene_name (str): Name of the target gene
+        transcriptome (Transcriptome): Transcriptome object with gene annotation
         species_identifier (str): Species identifier for file organization
         amplifier (str, optional): HCR amplifier type (B1-B5). Defaults to "B1".
-        n_probes (int, optional): Maximum number of probe pairs to select. 
-            Defaults to 30.
+        n_probes (int, optional): Maximum number of probe pairs to select. Defaults to 30.
+        base_dir (str, optional): Base directory for output files. Defaults to "".
             
     Raises:
         ValueError: If gene lacks unique_sequence attribute
@@ -498,8 +503,8 @@ def get_probes_IDT(
         
     Notes:
         - Randomly selects n_probes if more are available
-        - Exports probe sequences to IDT_sheets/
-        - Exports probe binding regions to probe_binding_regions_sheets/
+        - Exports probe sequences to output/{species}/IDT_sheets/
+        - Exports probe binding regions to output/{species}/probe_binding_regions_sheets/
         - Uses current date in filenames
         - Stores probe data in gene.probes and gene.regions attributes
     """
@@ -552,7 +557,7 @@ def get_probes_IDT(
     timestamp = pd.Timestamp.now().strftime('%Y-%m-%d')
 
     # Export probe sequences for IDT ordering
-    idt_output_dir = os.path.join(main_directory, species_identifier, 'IDT_sheets')
+    idt_output_dir = os.path.join(base_dir, "output", species_identifier, 'IDT_sheets')
     os.makedirs(idt_output_dir, exist_ok=True)
     
     idt_output_path = os.path.join(
@@ -573,7 +578,7 @@ def get_probes_IDT(
 
     # Export probe binding regions for reference
     regions_output_dir = os.path.join(
-        main_directory, species_identifier, 'probe_binding_regions_sheets'
+        base_dir, "output", species_identifier, 'probe_binding_regions_sheets'
     )
     os.makedirs(regions_output_dir, exist_ok=True)
     
@@ -596,22 +601,28 @@ def get_probes_IDT(
         raise Exception(f"Failed to export regions file: {e}")
 
 
-def export_probe_binding_regions_plot(
+def get_probe_binding_regions_plot(
     gene_name: str,
     transcriptome: Transcriptome,
-    main_directory: str,
-    species_identifier: str
-) -> None:
+    base_dir: str,
+    species_identifier: str,
+    save: bool = True
+) -> plt.Figure:
     """
-    Generate and export a genomic visualization of probe binding regions.
+    Generate and return a genomic visualization of probe binding regions.
     
     This function creates a publication-ready plot showing probe binding sites
     mapped to the gene's genomic structure, including exons, UTRs, and introns.
     
     Args:
-        gene: Gene object with regions attribute (from get_probes_IDT)
-        main_directory (str): Base directory for output files
+        gene_name (str): Name of the target gene
+        transcriptome (Transcriptome): Transcriptome object with gene annotation
+        base_dir (str): Base directory for input/output files
         species_identifier (str): Species identifier for file organization
+        save (bool, optional): Whether to save the plot to disk. Defaults to True.
+        
+    Returns:
+        plt.Figure: Matplotlib figure object containing the genomic visualization
         
     Raises:
         ValueError: If gene lacks regions attribute
@@ -621,8 +632,8 @@ def export_probe_binding_regions_plot(
     Notes:
         - Requires genome FASTA file at input/{species}/genome/genome_fasta.fa
         - Maps probe regions to both forward and reverse genomic strands
-        - Exports high-resolution PNG to probe_regions_plot/
-        - Displays interactive plot if running in notebook environment
+        - If save=True, exports high-resolution PNG to output/{species}/probe_regions_plot/
+        - Returns matplotlib figure for display in notebooks
     """
 
     gene = transcriptome.get_gene(gene_name)
@@ -639,7 +650,8 @@ def export_probe_binding_regions_plot(
     regions = gene.regions
 
     # Load genome sequence
-    genome_fasta_path = f"input/{species_identifier}/genome/genome_fasta.fa"
+    genome_fasta_path = os.path.join(base_dir, "input", species_identifier, "genome", "genome_fasta.fa")
+
     try:
         genome_seq = SeqIO.to_dict(SeqIO.parse(genome_fasta_path, "fasta"))
     except FileNotFoundError:
@@ -734,29 +746,27 @@ def export_probe_binding_regions_plot(
         fig = gv.plotfig()
         plt.title(f"{gene.name} HCR-FISH Probe Binding Sites", y=1.8, fontsize=16)
         
-        # Display plot
-        plt.show()
-
-        # Export high-resolution figure
-        output_dir = os.path.join(main_directory, species_identifier, 'probe_regions_plot')
-        os.makedirs(output_dir, exist_ok=True)
+        # Save to disk if requested
+        if save:
+            output_dir = os.path.join(base_dir, "output", species_identifier, 'probe_regions_plot')
+            os.makedirs(output_dir, exist_ok=True)
+            
+            output_path = os.path.join(output_dir, f"{gene.name}-probes.png")
+            fig.savefig(output_path, bbox_inches='tight', dpi=300)
+            
+            print(f"Probe binding regions plot exported to {output_path}")
         
-        output_path = os.path.join(output_dir, f"{gene.name}-probes.png")
-        fig.savefig(output_path, bbox_inches='tight', dpi=300)
-        
-        print(f"Probe binding regions plot exported to {output_path}")
-        
-        # Clean up matplotlib resources
-        plt.close(fig)
+        return fig
         
     except Exception as e:
+        plt.close('all')
         raise Exception(f"Failed to generate genomic visualization: {e}")
 
 def check_probe_availability(
     gene_name: str,
     transcriptome: Transcriptome,
-    input_dir: str,
-    species_identifier: str
+    species_identifier: str,
+    base_dir: str = "",
 ) -> int:
     """
     Check the number of HCR-FISH probes available for a given gene.
@@ -768,9 +778,9 @@ def check_probe_availability(
     
     Args:
         gene_name (str): Name of the target gene
-        input_dir (str): Directory containing input files and BLAST databases
-        transcriptome: Transcriptome object with gene annotation data
+        transcriptome (Transcriptome): Transcriptome object with gene annotation data
         species_identifier (str): Species identifier for database organization
+        base_dir (str, optional): Base directory for input files and output. Defaults to "".
         
     Returns:
         int: Number of available high-quality probe pairs
@@ -787,7 +797,7 @@ def check_probe_availability(
         - Prints progress information during execution
         
     Examples:
-        >>> n_probes = check_probe_availability("gene1", "/data", transcriptome, "dmel")
+        >>> n_probes = check_probe_availability("gene1", transcriptome, "dmel", "/data")
         Number of available probes for gene1: 45
         >>> print(f"Can design {n_probes} probe pairs")
     """
@@ -814,7 +824,7 @@ def check_probe_availability(
 
         # Perform BLAST analysis and process results to identify off-target regions
         print(f"Running BLAST analysis for {gene_name}...")
-        gene = blast_gene(gene_name, transcriptome, input_dir, species_identifier)
+        gene = blast_gene(gene_name, transcriptome, base_dir, species_identifier)
 
         # Design probes on unique regions using B1 amplifier
         print(f"Designing HCR-FISH probes for {gene_name}...")

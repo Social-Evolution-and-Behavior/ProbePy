@@ -41,6 +41,7 @@ isort = "^5.13.0"
 flake8 = "^7.0.0"
 mypy = "^1.8.0"
 pre-commit = "^3.6.0"
+mkinit = "^1.1.0"
 
 [tool.poetry.group.notebook.dependencies]
 ipykernel = "^7.0.1"

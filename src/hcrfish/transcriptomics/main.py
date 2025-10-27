@@ -3,7 +3,7 @@ from Bio import SeqIO
 from hcrfish.transcriptomics.classes import Transcriptome, Gene, Transcript, Exon, Intron, UTR, CDS 
 from hcrfish.transcriptomics.utils import get_sequence, gtf_to_dataframe
 
-def generate_transcriptome_object(transcriptome_gtf_path, genome_fasta_path, species): 
+def generate_transcriptome_object(transcriptome_gtf_path, genome_fasta_path): 
     
     # Initialize the genome sequence
     genome_seq = SeqIO.to_dict(SeqIO.parse(genome_fasta_path, "fasta"))
@@ -30,11 +30,8 @@ def generate_transcriptome_object(transcriptome_gtf_path, genome_fasta_path, spe
     # Iterate through each group of gene_id
     for gene_id, gene_rows in tqdm(grouped_genes, total=len(unique_gene_ids)):
 
-        # Get the gene name (look for the first non-null value)
-        if species == 'dmel': 
-            gene_name = gene_rows['gene_name'].dropna().iloc[0]
-        else: 
-            gene_name = gene_id
+        # Get the gene name (if available)
+        gene_name = gene_rows['gene_name'].dropna().iloc[0] if gene_rows['gene_name'].notna().any() else gene_id
 
         # Get chromosome and skip if not in genome 
         chromosome = gene_rows['seqname'].dropna().iloc[0]
