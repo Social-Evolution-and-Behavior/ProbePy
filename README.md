@@ -63,7 +63,7 @@ print(f"Designed {len(probes)} probe pairs for {gene.name}")
 
 ### 2. Complete Pipeline Example
 
-Visit the [docs] for a complete walkthrough including:
+Visit the [docs](https://github.com/Social-Evolution-and-Behavior/ProbePy/tree/main/docs) for a complete walkthrough including:
 - Downloading data with rsync
 - Building BLAST databases 
 - Transcriptome loading and gene selection
@@ -85,13 +85,10 @@ The probe design follows these key principles:
 4. **Specificity verification**: BLAST against transcriptome with/without introns
 5. **Visualization**: Maps probe locations to genomic coordinates
 
-## Example Workflows
-
-
 ## Output Formats
 
 ### IDT Order Sheets
-- Excel format compatible with IDT bulk ordering
+- Excel format compatible with IDT oPools bulk ordering 
 - Includes pool names and probe sequences
 - Ready for direct upload to IDT website
 
