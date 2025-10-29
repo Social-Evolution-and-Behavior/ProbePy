@@ -74,7 +74,11 @@ def gtf_to_dataframe(gtf_file):
     # Convert start and end to integers
     df['start'] = df['start'].astype(int)
     df['end'] = df['end'].astype(int)
-    
+
+    # If gene_id is empty, throw error 
+    if df['gene_id'].isnull().any():
+        raise ValueError("Some entries are missing gene_id in the GTF file.")
+
     return df
 
 

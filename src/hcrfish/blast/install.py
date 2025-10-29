@@ -16,7 +16,7 @@ import tarfile
 import zipfile
 import shutil
 from typing import Dict, Union, Any
-from hcrfish.blast.config import BLAST_VERSION
+BLAST_VERSION="2.15.0"
 
 
 def check_blast_tools() -> Dict[str, Dict[str, Union[bool, str, None]]]:

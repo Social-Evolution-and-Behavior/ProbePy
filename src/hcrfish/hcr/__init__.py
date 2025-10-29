@@ -14,6 +14,7 @@ __getattr__, __dir__, __all__ = lazy_loader.attach(
             'export_mrna_to_fasta',
         ],
         'utils': [
+            'assign_target',
             'blast_gene',
             'check_probe_availability',
             'design_hcr_probes',
@@ -26,7 +27,8 @@ __getattr__, __dir__, __all__ = lazy_loader.attach(
     },
 )
 
-__all__ = ['blast_gene', 'check_probe_availability', 'create_blast_databases',
-           'design_hcr_probes', 'download_with_rsync', 'export_mrna_to_fasta',
-           'get_amplifier', 'get_probe_binding_regions_plot', 'get_probes_IDT',
-           'prep', 'reverse_complement', 'reverse_string', 'utils']
+__all__ = ['assign_target', 'blast_gene', 'check_probe_availability',
+           'create_blast_databases', 'design_hcr_probes',
+           'download_with_rsync', 'export_mrna_to_fasta', 'get_amplifier',
+           'get_probe_binding_regions_plot', 'get_probes_IDT', 'prep',
+           'reverse_complement', 'reverse_string', 'utils']

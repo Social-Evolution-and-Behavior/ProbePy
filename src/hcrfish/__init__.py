@@ -21,7 +21,6 @@ __getattr__, __dir__, __all__ = lazy_loader.attach(
             'BLAST_VERSION',
             'check_blast_tools',
             'check_if_installed',
-            'config',
             'ensure_blast_tools',
             'get_system_info',
             'install',
@@ -34,6 +33,7 @@ __getattr__, __dir__, __all__ = lazy_loader.attach(
             'utils',
         ],
         'hcr': [
+            'assign_target',
             'blast_gene',
             'check_probe_availability',
             'create_blast_databases',
@@ -71,9 +71,9 @@ __getattr__, __dir__, __all__ = lazy_loader.attach(
 )
 
 __all__ = ['BLAST_VERSION', 'CDS', 'Exon', 'Gene', 'Intron', 'Transcript',
-           'Transcriptome', 'UTR', 'blast', 'blast_gene', 'check_blast_tools',
-           'check_exons_contain_all_features', 'check_if_installed',
-           'check_probe_availability', 'classes', 'config',
+           'Transcriptome', 'UTR', 'assign_target', 'blast', 'blast_gene',
+           'check_blast_tools', 'check_exons_contain_all_features',
+           'check_if_installed', 'check_probe_availability', 'classes',
            'create_blast_databases', 'design_hcr_probes',
            'download_with_rsync', 'ensure_blast_tools', 'export_mrna_to_fasta',
            'generate_transcriptome_object', 'get_amplifier',

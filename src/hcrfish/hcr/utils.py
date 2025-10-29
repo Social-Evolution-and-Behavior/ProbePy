@@ -15,7 +15,7 @@ from pygenomeviz import GenomeViz
 import Bio.SeqIO as SeqIO
 import matplotlib.pyplot as plt
 
-from hcrfish.blast.utils import check_blast_tools
+from hcrfish.blast.install import check_blast_tools
 from hcrfish.transcriptomics.classes import Gene, Transcriptome
 
 
@@ -849,3 +849,119 @@ def check_probe_availability(
     except Exception as e:
         print(f"Unexpected error during probe availability check for {gene_name}: {e}")
         raise Exception(f"Probe availability check failed for {gene_name}: {e}")
+    
+
+
+def assign_target(
+        gene_name: str,
+        transcriptome: Transcriptome,
+        sequence_type: str = 'mRNA',
+        transcript_id: Optional[str] = None,
+        use_longest_cds: bool = True,
+        use_longest_bounds: bool = False
+) -> None:
+    """
+    Assign a target sequence to a gene from its transcriptome.
+    
+    This function selects a specific transcript for a given gene and extracts 
+    either its mRNA or DNA sequence as the target for probe design. The transcript 
+    can be selected by ID, or automatically as the longest CDS or bounds.
+    
+    Args:
+        gene_name (str): Name or identifier of the target gene
+        transcriptome (Transcriptome): Transcriptome object containing gene annotations
+        sequence_type (str, optional): Type of sequence to extract. Either 'mRNA' 
+            (mature transcript without introns) or 'DNA' (genomic DNA with introns). 
+            Defaults to 'mRNA'.
+        transcript_id (Optional[str], optional): Specific transcript ID to use. If provided,
+            this transcript will be selected regardless of use_longest_cds or 
+            use_longest_bounds settings. Defaults to None.
+        use_longest_cds (bool, optional): If True, select the transcript with the 
+            longest coding sequence (CDS). Cannot be used with use_longest_bounds or 
+            transcript_id. Defaults to True.
+        use_longest_bounds (bool, optional): If True, select the transcript spanning 
+            the longest genomic region. Cannot be used with use_longest_cds or 
+            transcript_id. Defaults to False.
+    
+    Returns:
+        None: Stores the selected sequence in gene.target_sequence attribute.
+    
+    Raises:
+        ValueError: If sequence_type is not 'mRNA' or 'DNA'
+        ValueError: If both use_longest_cds and use_longest_bounds are True
+        ValueError: If transcript_id is specified along with use_longest_cds or use_longest_bounds
+        ValueError: If gene is not found in transcriptome
+        ValueError: If gene has no transcripts available
+        ValueError: If no transcript selection method is specified
+        ValueError: If specified transcript_id is not found for the gene
+        
+    Examples:
+        >>> # Use longest coding sequence (default)
+        >>> assign_target("Or9a", transcriptome)
+        Assigned mRNA sequence for gene 'Or9a' from transcript 'NM_001001234.1' with length 2341 bp.
+        
+        >>> # Use longest genomic span
+        >>> assign_target("dsx", transcriptome, use_longest_cds=False, use_longest_bounds=True)
+        Assigned mRNA sequence for gene 'dsx' from transcript 'NM_001001235.1' with length 2156 bp.
+        
+        >>> # Extract genomic DNA sequence
+        >>> assign_target("Or9a", transcriptome, sequence_type='DNA', use_longest_cds=True)
+        Assigned DNA sequence for gene 'Or9a' from transcript 'NM_001001234.1' with length 2500 bp.
+        
+        >>> # Use specific transcript by ID
+        >>> assign_target("Or9a", transcriptome, transcript_id="NM_001001234.2")
+        Assigned mRNA sequence for gene 'Or9a' from transcript 'NM_001001234.2' with length 1950 bp.
+    
+    Notes:
+        - The selected transcript sequence is stored in gene.target_sequence for use by 
+          downstream functions like design_hcr_probes() or blast_gene().
+        - Exactly one of use_longest_cds, use_longest_bounds, or transcript_id must be specified.
+        - mRNA sequences are typically preferred for probe design as they represent the 
+          mature transcript that will be targeted.
+        - DNA sequences include introns and may be useful for designing probes that span 
+          exon-intron junctions.
+        - The function prints informational output showing the selected transcript and 
+          sequence length.
+    """
+    # Validate sequence type
+    if sequence_type not in ['mRNA', 'DNA']:
+        raise ValueError("Invalid sequence_type. Must be 'mRNA' or 'DNA'.")
+
+    # Validate mutually exclusive parameters
+    if use_longest_cds and use_longest_bounds:
+        raise ValueError("Cannot use both longest CDS and longest bounds simultaneously.")
+    
+    if transcript_id and (use_longest_cds or use_longest_bounds):
+        raise ValueError("Cannot specify transcript_id when using longest CDS or bounds.")
+    
+    # Validate gene exists
+    gene = transcriptome.get_gene(gene_name)
+    if gene is None:
+        raise ValueError(f"Gene '{gene_name}' not found in transcriptome.")
+    
+    # Validate gene has transcripts
+    if len(gene.transcripts) == 0:
+        raise ValueError(f"Gene '{gene_name}' has no transcripts available.")
+    
+    # Validate at least one selection method is provided
+    if not (use_longest_cds or use_longest_bounds or transcript_id):
+        raise ValueError("Must specify one of use_longest_cds, use_longest_bounds, or transcript_id.")
+    
+    # Select transcript based on specified method
+    if use_longest_cds:
+        transcript = gene.get_transcript_longest_cds()
+    elif use_longest_bounds:
+        transcript = gene.get_transcript_longest_bounds()
+    elif transcript_id:
+        transcript = gene.get_transcript(transcript_id)
+        if transcript is None:
+            raise ValueError(f"Transcript ID '{transcript_id}' not found for gene '{gene_name}'.")
+    
+    # Extract appropriate sequence type
+    sequence = transcript.mrna_sequence if sequence_type == 'mRNA' else transcript.dna_sequence
+
+    # Assign to gene object
+    gene.target_sequence = sequence
+    print(f"Assigned {sequence_type} sequence for gene '{gene_name}' from transcript '{transcript.name}' with length {len(sequence)} bp.")
+
+    

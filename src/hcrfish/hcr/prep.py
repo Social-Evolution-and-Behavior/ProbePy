@@ -141,6 +141,11 @@ def download_with_rsync(
         else:
             print(f"Decompressing {output_path}")
             
+            # If overwrite=True and decompressed file exists, remove it to avoid gunzip conflicts
+            if overwrite and decompressed_path.exists():
+                print(f"Removing existing decompressed file: {decompressed_path}")
+                decompressed_path.unlink()
+            
             # Check if the .gz file actually exists before trying to decompress
             if not output_path.exists():
                 raise FileNotFoundError(f"Cannot decompress: .gz file not found at {output_path}")
@@ -237,7 +242,8 @@ def download_with_rsync(
 def export_mrna_to_fasta(
     transcriptome: Transcriptome,
     species_identifier: str,
-    base_dir: str = ""
+    base_dir: str = "",
+    overwrite: bool = False
 ):
     """
     Export mRNA sequences to FASTA files for BLAST database creation.
@@ -250,6 +256,7 @@ def export_mrna_to_fasta(
         transcriptome (Transcriptome): Transcriptome object containing gene and transcript data
         species_identifier (str): Species identifier for directory organization (e.g., 'dmel', 'dyak')
         base_dir (str, optional): Base directory for output files. Defaults to 'input'.
+        overwrite (bool, optional): Whether to overwrite existing FASTA files. Defaults to False.
         
     Raises:
         ValueError: If transcriptome is empty or contains no valid transcripts
@@ -268,6 +275,7 @@ def export_mrna_to_fasta(
         - FASTA headers include transcript name, gene name, genomic location, and strand
         - Skips transcripts without sequence data
         - Files are compatible with makeblastdb for database creation
+        - Skips export if files already exist (unless overwrite=True)
     """
     if not transcriptome.genes:
         raise ValueError("Transcriptome object is empty - no genes found")
@@ -281,6 +289,13 @@ def export_mrna_to_fasta(
     # Define output file paths
     no_introns_path = os.path.join(no_introns_dir, "mRNA_no_introns.fasta")
     yes_introns_path = os.path.join(yes_introns_dir, "mRNA_yes_introns.fasta")
+    
+    # Check if files already exist and skip if overwrite=False
+    if not overwrite:
+        if Path(no_introns_path).exists() and Path(yes_introns_path).exists():
+            print(f"FASTA files already exist for {species_identifier}")
+            print("Skipping export (use overwrite=True to force re-export)")
+            return (no_introns_path, yes_introns_path)
 
     print(f"Exporting mRNA sequences for {len(transcriptome.genes)} genes...")
     

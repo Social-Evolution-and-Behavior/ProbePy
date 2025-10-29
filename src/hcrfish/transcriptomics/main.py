@@ -27,6 +27,9 @@ def generate_transcriptome_object(transcriptome_gtf_path, genome_fasta_path):
     unique_gene_ids = db['gene_id'].unique()
     print(f"Found {len(unique_gene_ids)} unique genes.")
 
+    # Convert all "features" to lower case 
+    db['feature'] = db['feature'].str.lower()
+
     # Iterate through each group of gene_id
     for gene_id, gene_rows in tqdm(grouped_genes, total=len(unique_gene_ids)):
 
@@ -63,9 +66,9 @@ def generate_transcriptome_object(transcriptome_gtf_path, genome_fasta_path):
 
             # Collect all exons, CDS, 5' UTR, and 3' UTR features for this transcript
             exons = transcript_rows[transcript_rows['feature'] == 'exon']
-            cds = transcript_rows[transcript_rows['feature'] == 'CDS']
-            utr5 = transcript_rows[transcript_rows['feature'] == '5UTR']
-            utr3 = transcript_rows[transcript_rows['feature'] == '3UTR']
+            cds = transcript_rows[transcript_rows['feature'] == 'cds']
+            utr5 = transcript_rows[(transcript_rows['feature'] == '5utr') | (transcript_rows['feature'] == 'five_prime_utr')]
+            utr3 = transcript_rows[(transcript_rows['feature'] == '3utr') | (transcript_rows['feature'] == 'three_prime_utr')]
 
             # Add exons to the transcript
             for _, exon in exons.iterrows():
