@@ -2,38 +2,32 @@
 
 > **Fluorescent *in situ* Hybridization Probe Design Tool**
 
-A comprehensive Python package for designing fluorescent *in situ* hybridization (FISH) probes compatible with the HCR v3.0 B-system amplification system. 
+A comprehensive Python package for designing custom fluorescent *in situ* hybridization (FISH) probes. 
 
 ## Features
 
-- **Automated probe design**: Design HCR v3.0 compatible probe pairs with optimal GC content and prevent off-target binding
 - **Multi-species support**: Works with any organism with genome and transcriptome annotations
-- **BLAST-based specificity verification**: Ensures probe specificity using NCBI BLAST+ tools
+- **Compatible probe design**: Probes are compatible with Molecular Instruments HCR v3.0 B-system amplification 
+- **Facilitates Multiplexing**: Probes can be ordered with B1-B5 amplifier recognition motifs 
+- **BLAST-based specificity**: Ensures unique binding by blasting against the transcriptome 
 - **Comprehensive visualization**: Generate publication-ready plots showing probe locations on gene structures
 - **Flexible output formats**: Export probes in IDT-compatible Excel format for direct ordering
 
 ## Installation
 
 ```bash
-git clone https://github.com/GiacomoGlotzer/hcr_probe_design_general
-cd hcr_probe_design_general
+git clone https://github.com/Social-Evolution-and-Behavior/ProbePy.git
+cd ProbePy 
+poetry install
 ```
 
 **Requirements:** Python 3.11+, Poetry, NCBI BLAST+ command line tools
 
-
-### Install dependencies with Poetry
-
-```bash
-poetry install
-poetry shell
-```
-
 ### Install NCBI BLAST+ tools
 
-The package will facilitate the installation of NCBI BLAST+ command line tools. 
+The package facilitates the installation of NCBI BLAST+ command line tools. 
 
-```
+```python
 import hcrfish
 hcrfish.install_blast_tools()
 ```
@@ -58,7 +52,7 @@ transcriptome = hcrfish.load_transcriptome_object("species_transcriptome")
 
 # Get gene of interest
 gene = transcriptome.get_gene("Or9a")
-transcript = gene.get_transcript_longest_bounds()
+transcript = gene.get_transcript_longest_cds()
 
 # Design HCR probes
 sequence = transcript.mrna_sequence
