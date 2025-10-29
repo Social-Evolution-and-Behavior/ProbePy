@@ -1,4 +1,4 @@
-## probeMe
+## ProbePy
 
 > **Fluorescent *in situ* Hybridization Probe Design Tool**
 
