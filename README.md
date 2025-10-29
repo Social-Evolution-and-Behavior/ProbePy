@@ -108,13 +108,6 @@ The probe design follows these key principles:
 ### Visualization
 - Gene structure plots with probe locations
 
-
-## Support
-
-For questions, issues, or feature requests:
-- Open an issue on GitHub
-- Contact: gglotzer@rockefeller.edu
-
 ## Acknowledgments
 
 - HCR v3.0 system developed by Molecular Instruments 
