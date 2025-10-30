@@ -344,7 +344,7 @@ def blast_gene(
     )
     
     if not success_no_introns:
-        raise Exception("BLAST against no-introns database failed")
+        raise Exception("BLAST against mature RNA database failed")
 
     # BLAST against pre-mRNA database (with introns)
     output_path_yes_introns = os.path.join(
@@ -369,7 +369,7 @@ def blast_gene(
     )
     
     if not success_yes_introns:
-        raise Exception("BLAST against introns database failed")
+        raise Exception("BLAST against pre-mRNA database failed")
 
     print(f"BLAST searches completed for {gene.name}. Results saved to {gene_seq_blast_output_dir}")
     
