@@ -6,7 +6,6 @@ including sequence manipulation and amplifier sequence retrieval.
 """
 
 import re
-import subprocess
 from typing import Tuple, List, Optional, Any
 import numpy as np
 import os
@@ -16,6 +15,7 @@ import Bio.SeqIO as SeqIO
 import matplotlib.pyplot as plt
 
 from probepy.blast.install import check_blast_tools
+from probepy.blast.utils import run_blastn
 from probepy.transcriptomics.classes import Gene, Transcriptome
 
 
@@ -270,7 +270,7 @@ def blast_gene(
     Raises:
         Exception: If BLAST+ tools are not available
         ValueError: If gene is None or lacks target_sequence attribute
-        subprocess.CalledProcessError: If BLAST commands fail
+        Exception: If BLAST searches fail
         
     Notes:
         - Creates FASTA files in output/{species}/gene_seq_blast_input/
@@ -321,53 +321,55 @@ def blast_gene(
     for file in os.listdir(gene_seq_blast_output_dir):
         os.remove(os.path.join(gene_seq_blast_output_dir, file))
 
-    # BLAST parameters for sensitive detection
-    blast_params = [
-        "-task blastn",
-        f"-query {input_fasta_path}",
-        "-ungapped",
-        "-word_size 15",
-        "-strand plus",
-        "-reward 1",
-        "-penalty -5",
-        "-dust no",
-        "-soft_masking false",
-        "-max_target_seqs 10000",
-        "-outfmt '10 qseqid sseqid sacc pident length mismatch gapopen qstart qend sstart send evalue bitscore'",
-        "-num_threads 4"
-    ]
-
     # BLAST against mature mRNA database (no introns)
     output_path_no_introns = os.path.join(
         gene_seq_blast_output_dir, f"{gene.name}_blasted_no_introns.csv"
     )
-    command_no_introns = " ".join([
-        "blastn"
-    ] + blast_params[1:] + [
-        f"-db {transcriptome_no_introns_db}",
-        f"-out {output_path_no_introns}"
-    ])
     
-    try:
-        subprocess.run(command_no_introns, shell=True, check=True)
-    except subprocess.CalledProcessError as e:
-        raise Exception(f"BLAST against no-introns database failed: {e}")
+    success_no_introns = run_blastn(
+        query=input_fasta_path,
+        database=transcriptome_no_introns_db,
+        output_file=output_path_no_introns,
+        task="blastn",
+        ungapped=True,
+        word_size=15,
+        strand="plus",
+        reward=1,
+        penalty=-5,
+        dust="no",
+        soft_masking=False,
+        max_target_seqs=10000,
+        outfmt="10 qseqid sseqid sacc pident length mismatch gapopen qstart qend sstart send evalue bitscore",
+        num_threads=4
+    )
+    
+    if not success_no_introns:
+        raise Exception("BLAST against no-introns database failed")
 
     # BLAST against pre-mRNA database (with introns)
     output_path_yes_introns = os.path.join(
         gene_seq_blast_output_dir, f"{gene.name}_blasted_yes_introns.csv"
     )
-    command_yes_introns = " ".join([
-        "blastn"
-    ] + blast_params[1:] + [
-        f"-db {transcriptome_yes_introns_db}",
-        f"-out {output_path_yes_introns}"
-    ])
     
-    try:
-        subprocess.run(command_yes_introns, shell=True, check=True)
-    except subprocess.CalledProcessError as e:
-        raise Exception(f"BLAST against introns database failed: {e}")
+    success_yes_introns = run_blastn(
+        query=input_fasta_path,
+        database=transcriptome_yes_introns_db,
+        output_file=output_path_yes_introns,
+        task="blastn",
+        ungapped=True,
+        word_size=15,
+        strand="plus",
+        reward=1,
+        penalty=-5,
+        dust="no",
+        soft_masking=False,
+        max_target_seqs=10000,
+        outfmt="10 qseqid sseqid sacc pident length mismatch gapopen qstart qend sstart send evalue bitscore",
+        num_threads=4
+    )
+    
+    if not success_yes_introns:
+        raise Exception("BLAST against introns database failed")
 
     print(f"BLAST searches completed for {gene.name}. Results saved to {gene_seq_blast_output_dir}")
     

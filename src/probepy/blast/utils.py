@@ -108,9 +108,17 @@ def run_blastn(
     database: str,
     output_file: Optional[str] = None,
     evalue: float = 0.001,
-    max_target_seqs: int = 500,
-    outfmt: str = "6",
-    num_threads: int = 1,
+    max_target_seqs: int = 10000,
+    outfmt: str = "10 qseqid sseqid sacc pident length mismatch gapopen qstart qend sstart send evalue bitscore",
+    num_threads: int = 4,
+    task: str = "blastn",
+    ungapped: bool = False,
+    word_size: Optional[int] = None,
+    strand: str = "both",
+    reward: Optional[int] = None,
+    penalty: Optional[int] = None,
+    dust: str = "yes",
+    soft_masking: bool = True,
     **kwargs: Any
 ) -> Union[str, bool]:
     """
@@ -128,10 +136,21 @@ def run_blastn(
         evalue (float, optional): E-value threshold for reporting hits.
             Defaults to 0.001.
         max_target_seqs (int, optional): Maximum number of target sequences
-            to report. Defaults to 500.
-        outfmt (str, optional): Output format code. Defaults to "6" (tabular).
+            to report. Defaults to 10000.
+        outfmt (str, optional): Output format specification. Defaults to 
+            "10 qseqid sseqid sacc pident length mismatch gapopen qstart qend sstart send evalue bitscore"
+            (CSV format with specific columns).
         num_threads (int, optional): Number of threads to use for search.
-            Defaults to 1.
+            Defaults to 4.
+        task (str, optional): BLAST task preset. Defaults to "blastn".
+        ungapped (bool, optional): Perform ungapped alignment only. Defaults to False.
+        word_size (Optional[int], optional): Word size for initial matches. Defaults to None (BLAST default).
+        strand (str, optional): Query strand(s) to search. Options: "both", "plus", "minus". 
+            Defaults to "both".
+        reward (Optional[int], optional): Reward for nucleotide match. Defaults to None (BLAST default).
+        penalty (Optional[int], optional): Penalty for nucleotide mismatch. Defaults to None (BLAST default).
+        dust (str, optional): Filter query sequence with DUST. Options: "yes", "no". Defaults to "yes".
+        soft_masking (bool, optional): Apply filtering locations as soft masks. Defaults to True.
         **kwargs (Any): Additional BLASTN parameters as key-value pairs,
             passed directly to the blastn command.
     
@@ -144,8 +163,11 @@ def run_blastn(
         >>> # Save results to file
         >>> success = run_blastn("probes.fasta", "transcriptome_db", "results.txt")
         
-        >>> # Get results as string
-        >>> results = run_blastn("probes.fasta", "transcriptome_db", outfmt="6")
+        >>> # Get results as string with custom parameters
+        >>> results = run_blastn(
+        ...     "probes.fasta", "transcriptome_db", 
+        ...     ungapped=True, word_size=15, strand="plus"
+        ... )
         >>> if results:
         ...     print(f"Found {len(results.splitlines())} hits")
     """
@@ -183,6 +205,8 @@ def run_blastn(
         query,
         '-db',
         database,
+        '-task',
+        task,
         '-evalue',
         str(evalue),
         '-max_target_seqs',
@@ -190,8 +214,27 @@ def run_blastn(
         '-outfmt',
         str(outfmt),
         '-num_threads',
-        str(num_threads)
+        str(num_threads),
+        '-strand',
+        strand,
+        '-dust',
+        dust,
+        '-soft_masking',
+        str(soft_masking).lower()
     ]
+    
+    # Add optional parameters
+    if ungapped:
+        cmd.append('-ungapped')
+    
+    if word_size is not None:
+        cmd.extend(['-word_size', str(word_size)])
+    
+    if reward is not None:
+        cmd.extend(['-reward', str(reward)])
+    
+    if penalty is not None:
+        cmd.extend(['-penalty', str(penalty)])
     
     # Add output file if specified
     if output_file:
