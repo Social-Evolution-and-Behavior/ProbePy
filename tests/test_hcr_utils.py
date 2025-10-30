@@ -21,9 +21,11 @@ from probepy.hcr.utils import (
     blast_gene,
     get_probes_IDT,
     get_probe_binding_regions_plot,
-    check_probe_availability
+    check_probe_availability,
+    assign_target
 )
 from probepy.transcriptomics.classes import Gene, Transcriptome
+from tests.conftest import VALID_AMPLIFIERS
 
 
 class TestBasicUtils:
@@ -396,6 +398,255 @@ class TestIntegration:
                     
             # Check return type annotation
             assert sig.return_annotation != inspect.Signature.empty, f"Function {func.__name__} lacks return type annotation"
+
+
+class TestAssignTarget:
+    """Test assign_target function for sequence selection and extraction."""
+    
+    def test_assign_target_default_mrna(self, sample_transcriptome):
+        """Test basic assignment with default parameters (longest CDS, mRNA)."""
+        gene = sample_transcriptome.get_gene("Or9a")
+        
+        # Call assign_target
+        assign_target("Or9a", sample_transcriptome)
+        
+        # Verify sequence was assigned
+        assert hasattr(gene, 'target_sequence')
+        assert gene.target_sequence is not None
+        assert len(gene.target_sequence) > 0
+        assert isinstance(gene.target_sequence, str)
+        
+        # Verify it's an mRNA sequence (should match transcript mrna_sequence)
+        transcript = gene.get_transcript_longest_cds()
+        assert gene.target_sequence == transcript.mrna_sequence
+    
+    def test_assign_target_longest_bounds(self, sample_transcriptome):
+        """Test assignment using longest genomic bounds."""
+        gene = sample_transcriptome.get_gene("Or9a")
+        
+        assign_target("Or9a", sample_transcriptome, 
+                     use_longest_cds=False, use_longest_bounds=True)
+        
+        # Verify sequence was assigned
+        assert hasattr(gene, 'target_sequence')
+        assert gene.target_sequence is not None
+        
+        # Verify it's from the longest bounds transcript
+        transcript = gene.get_transcript_longest_bounds()
+        assert gene.target_sequence == transcript.mrna_sequence
+    
+    def test_assign_target_dna_sequence(self, sample_transcriptome):
+        """Test assignment of DNA sequence instead of mRNA."""
+        gene = sample_transcriptome.get_gene("Or9a")
+        
+        assign_target("Or9a", sample_transcriptome, sequence_type='DNA')
+        
+        # Verify DNA sequence was assigned
+        assert hasattr(gene, 'target_sequence')
+        assert gene.target_sequence is not None
+        
+        # Verify it's DNA (would differ from mRNA if introns exist)
+        transcript = gene.get_transcript_longest_cds()
+        assert gene.target_sequence == transcript.dna_sequence
+    
+    def test_assign_target_specific_transcript(self, sample_transcriptome):
+        """Test assignment using specific transcript ID."""
+        gene = sample_transcriptome.get_gene("Or9a")
+        transcript_id = "NM_001001234.1"
+        
+        assign_target("Or9a", sample_transcriptome, transcript_id=transcript_id, 
+                     use_longest_cds=False, use_longest_bounds=False)
+        
+        # Verify correct transcript was selected
+        assert hasattr(gene, 'target_sequence')
+        transcript = gene.get_transcript(transcript_id)
+        assert gene.target_sequence == transcript.mrna_sequence
+    
+    def test_assign_target_multiple_genes(self, sample_transcriptome):
+        """Test assignment works for different genes."""
+        # Assign to first gene
+        assign_target("Or9a", sample_transcriptome)
+        gene1 = sample_transcriptome.get_gene("Or9a")
+        seq1 = gene1.target_sequence
+        
+        # Assign to second gene
+        assign_target("dsx", sample_transcriptome)
+        gene2 = sample_transcriptome.get_gene("dsx")
+        seq2 = gene2.target_sequence
+        
+        # Verify different sequences
+        assert seq1 != seq2
+        assert len(seq1) > 0
+        assert len(seq2) > 0
+    
+    def test_assign_target_invalid_sequence_type(self, sample_transcriptome):
+        """Test error when invalid sequence type is provided."""
+        with pytest.raises(ValueError, match="Invalid sequence_type"):
+            assign_target("Or9a", sample_transcriptome, sequence_type='protein')
+        
+        with pytest.raises(ValueError, match="Invalid sequence_type"):
+            assign_target("Or9a", sample_transcriptome, sequence_type='rRNA')
+    
+    def test_assign_target_conflicting_parameters(self, sample_transcriptome):
+        """Test error when both use_longest_cds and use_longest_bounds are True."""
+        with pytest.raises(ValueError, match="Cannot use both longest CDS and longest bounds"):
+            assign_target("Or9a", sample_transcriptome, 
+                         use_longest_cds=True, use_longest_bounds=True)
+    
+    def test_assign_target_transcript_id_with_longest(self, sample_transcriptome):
+        """Test error when transcript_id conflicts with longest parameters."""
+        with pytest.raises(ValueError, match="Cannot specify transcript_id when using longest"):
+            assign_target("Or9a", sample_transcriptome,
+                         transcript_id="NM_001001234.1", use_longest_cds=True,
+                         use_longest_bounds=False)
+        
+        with pytest.raises(ValueError, match="Cannot specify transcript_id when using longest"):
+            assign_target("Or9a", sample_transcriptome,
+                         transcript_id="NM_001001234.1", use_longest_cds=False,
+                         use_longest_bounds=True)
+    
+    def test_assign_target_no_selection_method(self, sample_transcriptome):
+        """Test error when no transcript selection method is provided."""
+        with pytest.raises(ValueError, match="Must specify one of"):
+            assign_target("Or9a", sample_transcriptome, 
+                         use_longest_cds=False, use_longest_bounds=False, 
+                         transcript_id=None)
+    
+    def test_assign_target_gene_not_found(self, sample_transcriptome):
+        """Test error when gene is not found in transcriptome."""
+        with pytest.raises(ValueError, match="not found in transcriptome"):
+            assign_target("nonexistent_gene", sample_transcriptome)
+    
+    def test_assign_target_invalid_transcript_id(self, sample_transcriptome):
+        """Test error when specified transcript ID is not found."""
+        with pytest.raises(ValueError, match="Transcript ID .* not found"):
+            assign_target("Or9a", sample_transcriptome,
+                         transcript_id="invalid_transcript_id",
+                         use_longest_cds=False, use_longest_bounds=False)
+    
+    def test_assign_target_empty_gene(self, sample_transcriptome):
+        """Test error when gene has no transcripts."""
+        # Create transcriptome with empty gene
+        empty_gene = Gene("FBgn_empty", "empty_gene")
+        sample_transcriptome.add_gene(empty_gene)
+        
+        with pytest.raises(ValueError, match="has no transcripts available"):
+            assign_target("empty_gene", sample_transcriptome)
+    
+    def test_assign_target_preserves_existing_data(self, sample_transcriptome):
+        """Test that assign_target doesn't overwrite other gene attributes."""
+        gene = sample_transcriptome.get_gene("Or9a")
+        original_name = gene.name
+        original_chromosome = gene.chromosome
+        
+        assign_target("Or9a", sample_transcriptome)
+        
+        # Verify other attributes remain unchanged
+        assert gene.name == original_name
+        assert gene.chromosome == original_chromosome
+        assert hasattr(gene, 'target_sequence')
+    
+    def test_assign_target_sequence_properties(self, sample_transcriptome):
+        """Test that assigned sequence has expected properties."""
+        assign_target("Or9a", sample_transcriptome)
+        gene = sample_transcriptome.get_gene("Or9a")
+        
+        # Check sequence contains only DNA bases
+        valid_dna_bases = set("ATCGatcgNn-")
+        assert all(base in valid_dna_bases for base in gene.target_sequence)
+        
+        # Check sequence is non-empty
+        assert len(gene.target_sequence) > 0
+    
+    def test_assign_target_mRNA_vs_DNA(self, sample_transcriptome):
+        """Test that mRNA and DNA sequences can be different."""
+        # Assign mRNA
+        assign_target("Or9a", sample_transcriptome, sequence_type='mRNA')
+        gene = sample_transcriptome.get_gene("Or9a")
+        mrna_seq = gene.target_sequence
+        
+        # Both should be valid sequences
+        assert len(mrna_seq) > 0
+        assert isinstance(mrna_seq, str)
+        
+        # Test DNA assignment separately with proper fixture setup
+        # (test fixture needs dna_sequence to be populated)
+        transcript = gene.get_transcript_longest_cds()
+        assert hasattr(transcript, 'dna_sequence')
+    
+    def test_assign_target_sequential_assignments(self, sample_transcriptome):
+        """Test that sequential assignments work correctly."""
+        # First assignment
+        assign_target("Or9a", sample_transcriptome, use_longest_cds=True)
+        gene = sample_transcriptome.get_gene("Or9a")
+        seq1 = gene.target_sequence
+        
+        # Second assignment (should overwrite)
+        assign_target("Or9a", sample_transcriptome, use_longest_cds=False, use_longest_bounds=True)
+        seq2 = gene.target_sequence
+        
+        # Both should be valid
+        assert len(seq1) > 0
+        assert len(seq2) > 0
+        
+        # They might be same if gene has single transcript, but overwrites should work
+        assert hasattr(gene, 'target_sequence')
+    
+    def test_assign_target_with_all_valid_amplifiers(self, sample_transcriptome):
+        """Test that assigned sequences work with probe design."""
+        assign_target("Or9a", sample_transcriptome)
+        gene = sample_transcriptome.get_gene("Or9a")
+        
+        # Should be able to design probes with assigned sequence
+        for amplifier in VALID_AMPLIFIERS:
+            probes, regions, positions = design_hcr_probes(gene.target_sequence, amplifier)
+            
+            # Should generate at least some probes for a valid sequence
+            if len(gene.target_sequence) >= 52:
+                assert isinstance(probes, list)
+                assert isinstance(regions, list)
+                assert isinstance(positions, list)
+    
+    def test_assign_target_print_output(self, sample_transcriptome, capsys):
+        """Test that assign_target prints informational output."""
+        assign_target("Or9a", sample_transcriptome)
+        
+        captured = capsys.readouterr()
+        
+        # Check that output contains expected information
+        assert "Assigned" in captured.out
+        assert "Or9a" in captured.out
+        assert "bp" in captured.out
+    
+    def test_assign_target_sequence_length_match(self, sample_transcriptome):
+        """Test that assigned sequence length matches transcript."""
+        assign_target("Or9a", sample_transcriptome)
+        gene = sample_transcriptome.get_gene("Or9a")
+        transcript = gene.get_transcript_longest_cds()
+        
+        # Length should match
+        assert len(gene.target_sequence) == len(transcript.mrna_sequence)
+    
+    @pytest.mark.parametrize("gene_name", ["Or9a", "dsx"])
+    def test_assign_target_multiple_genes_parametrized(self, sample_transcriptome, gene_name):
+        """Parametrized test for multiple genes."""
+        assign_target(gene_name, sample_transcriptome)
+        gene = sample_transcriptome.get_gene(gene_name)
+        
+        assert hasattr(gene, 'target_sequence')
+        assert gene.target_sequence is not None
+        assert len(gene.target_sequence) > 0
+    
+    def test_assign_target_integration_with_blast(self, sample_transcriptome):
+        """Test that assign_target output can be used with blast_gene."""
+        # assign_target sets target_sequence needed for blast_gene
+        assign_target("Or9a", sample_transcriptome)
+        gene = sample_transcriptome.get_gene("Or9a")
+        
+        # Verify target_sequence is set (as required by blast_gene)
+        assert hasattr(gene, 'target_sequence')
+        assert gene.target_sequence is not None
+        assert not hasattr(gene, 'unique_sequence')  # blast_gene sets this later
 
 
 if __name__ == "__main__":

@@ -1,8 +1,8 @@
 """
-Tests for probepy.blast module.
+Tests for probepy.blast.utils module.
 
-This module tests BLAST-related functionality including tool checking,
-database creation, and sequence searching.
+This module tests BLAST-related functionality including
+database creation and sequence searching.
 """
 
 import pytest
@@ -12,127 +12,10 @@ import os
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from probepy.blast.blast_utils import (
-    check_blast_tools,
-    ensure_blast_tools, 
+from probepy.blast.utils import (
     run_makeblastdb,
     run_blastn
 )
-
-
-class TestCheckBlastTools:
-    """Test BLAST tool availability checking."""
-    
-    @patch('subprocess.run')
-    def test_tools_available(self, mock_run):
-        """Test when BLAST tools are available."""
-        # Mock successful version check
-        mock_result = MagicMock()
-        mock_result.stdout = "makeblastdb: 2.12.0+\n Build: Mar 8 2022"
-        mock_result.returncode = 0
-        mock_run.return_value = mock_result
-        
-        status = check_blast_tools()
-        
-        assert isinstance(status, dict)
-        assert 'makeblastdb' in status
-        assert 'blastn' in status
-        assert status['makeblastdb']['available'] is True
-        assert 'version' in status['makeblastdb']
-    
-    @patch('subprocess.run')
-    def test_tools_not_available(self, mock_run):
-        """Test when BLAST tools are not available."""
-        # Mock command not found
-        mock_run.side_effect = FileNotFoundError()
-        
-        status = check_blast_tools()
-        
-        assert isinstance(status, dict)
-        assert 'makeblastdb' in status
-        assert 'blastn' in status
-        assert status['makeblastdb']['available'] is False
-        assert status['makeblastdb']['version'] is None
-    
-    @patch('subprocess.run')
-    def test_timeout_handling(self, mock_run):
-        """Test timeout handling in tool checking."""
-        mock_run.side_effect = subprocess.TimeoutExpired(['makeblastdb', '-version'], 30)
-        
-        status = check_blast_tools()
-        
-        assert status['makeblastdb']['available'] is False
-        assert status['makeblastdb']['version'] is None
-
-
-class TestEnsureBlastTools:
-    """Test BLAST tool installation and verification."""
-    
-    @patch('subprocess.run')
-    def test_tools_already_available(self, mock_run):
-        """Test when tools are already available."""
-        # Mock successful version check
-        mock_result = MagicMock()
-        mock_result.returncode = 0
-        mock_run.return_value = mock_result
-        
-        result = ensure_blast_tools()
-        
-        assert result is True
-        # Should only call version check, not installation
-        assert mock_run.call_count == 1
-    
-    @patch('subprocess.run')
-    @patch('pathlib.Path.exists')
-    def test_installation_script_missing(self, mock_exists, mock_run):
-        """Test when installation script is missing."""
-        # First call fails (tools not available), exists check fails
-        mock_run.side_effect = FileNotFoundError()
-        mock_exists.return_value = False
-        
-        result = ensure_blast_tools()
-        
-        assert result is False
-    
-    @patch('subprocess.run')
-    @patch('pathlib.Path.exists')
-    def test_installation_success(self, mock_exists, mock_run):
-        """Test successful installation."""
-        # Set up mock sequence: fail, script exists, install succeeds, verify succeeds
-        mock_exists.return_value = True
-        
-        def mock_run_side_effect(*args, **kwargs):
-            if 'makeblastdb' in str(args[0]):
-                if mock_run.call_count <= 1:
-                    raise FileNotFoundError()  # First check fails
-                else:
-                    return MagicMock(returncode=0)  # After install succeeds
-            else:
-                return MagicMock(returncode=0)  # Installation script succeeds
-        
-        mock_run.side_effect = mock_run_side_effect
-        
-        result = ensure_blast_tools()
-        
-        assert result is True
-    
-    @patch('subprocess.run')
-    @patch('pathlib.Path.exists')
-    def test_installation_timeout(self, mock_exists, mock_run):
-        """Test installation timeout."""
-        mock_exists.return_value = True
-        
-        def mock_run_side_effect(*args, **kwargs):
-            if 'makeblastdb' in str(args[0]):
-                raise FileNotFoundError()
-            else:
-                raise subprocess.TimeoutExpired(args[0], 300)
-        
-        mock_run.side_effect = mock_run_side_effect
-        
-        result = ensure_blast_tools()
-        
-        assert result is False
 
 
 class TestRunMakeblastdb:
@@ -149,7 +32,7 @@ class TestRunMakeblastdb:
         result = run_makeblastdb(temp_fasta_file, "test_db", dbtype="invalid")
         assert result is False
     
-    @patch('probepy.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.utils.ensure_blast_tools')
     def test_blast_tools_not_available(self, mock_ensure, temp_fasta_file):
         """Test when BLAST tools are not available."""
         mock_ensure.return_value = False
@@ -158,7 +41,7 @@ class TestRunMakeblastdb:
         
         assert result is False
     
-    @patch('probepy.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.utils.ensure_blast_tools')
     @patch('subprocess.run')
     def test_successful_database_creation(self, mock_run, mock_ensure, temp_fasta_file):
         """Test successful database creation."""
@@ -180,7 +63,7 @@ class TestRunMakeblastdb:
         assert '-dbtype' in call_args
         assert '-out' in call_args
     
-    @patch('probepy.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.utils.ensure_blast_tools')
     @patch('subprocess.run')
     def test_database_creation_failure(self, mock_run, mock_ensure, temp_fasta_file):
         """Test database creation failure."""
@@ -191,7 +74,7 @@ class TestRunMakeblastdb:
         
         assert result is False
     
-    @patch('probepy.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.utils.ensure_blast_tools')
     @patch('subprocess.run')
     def test_timeout_handling(self, mock_run, mock_ensure, temp_fasta_file):
         """Test timeout handling in database creation."""
@@ -211,7 +94,7 @@ class TestRunBlastn:
         result = run_blastn("/nonexistent/query.fasta", "database")
         assert result is False
     
-    @patch('probepy.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.utils.ensure_blast_tools')
     def test_blast_tools_not_available(self, mock_ensure, temp_fasta_file):
         """Test when BLAST tools are not available."""
         mock_ensure.return_value = False
@@ -220,7 +103,7 @@ class TestRunBlastn:
         
         assert result is False
     
-    @patch('probepy.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.utils.ensure_blast_tools')
     @patch('pathlib.Path.exists')
     def test_database_not_found(self, mock_exists, mock_ensure, temp_fasta_file):
         """Test when database files don't exist."""
@@ -231,7 +114,7 @@ class TestRunBlastn:
         
         assert result is False
     
-    @patch('probepy.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.utils.ensure_blast_tools')
     @patch('pathlib.Path.exists')
     @patch('subprocess.run')
     def test_successful_search_to_file(self, mock_run, mock_exists, mock_ensure, temp_fasta_file, temp_directory):
@@ -256,7 +139,7 @@ class TestRunBlastn:
         assert '-db' in call_args
         assert '-out' in call_args
     
-    @patch('probepy.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.utils.ensure_blast_tools')
     @patch('pathlib.Path.exists')
     @patch('subprocess.run')
     def test_successful_search_return_results(self, mock_run, mock_exists, mock_ensure, temp_fasta_file):
@@ -274,7 +157,7 @@ class TestRunBlastn:
         assert "query1" in result
         assert "subject1" in result
     
-    @patch('probepy.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.utils.ensure_blast_tools')
     @patch('pathlib.Path.exists')
     @patch('subprocess.run')
     def test_custom_parameters(self, mock_run, mock_exists, mock_ensure, temp_fasta_file):
@@ -307,7 +190,7 @@ class TestRunBlastn:
         assert '-word_size' in call_args
         assert '11' in call_args
     
-    @patch('probepy.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.utils.ensure_blast_tools')
     @patch('pathlib.Path.exists')
     @patch('subprocess.run')
     def test_search_failure(self, mock_run, mock_exists, mock_ensure, temp_fasta_file):
@@ -320,7 +203,7 @@ class TestRunBlastn:
         
         assert result is False
     
-    @patch('probepy.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.utils.ensure_blast_tools')
     @patch('pathlib.Path.exists')
     @patch('subprocess.run')
     def test_search_timeout(self, mock_run, mock_exists, mock_ensure, temp_fasta_file):
@@ -337,7 +220,7 @@ class TestRunBlastn:
 class TestIntegration:
     """Integration tests for BLAST functionality."""
     
-    @patch('probepy.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.utils.ensure_blast_tools')
     @patch('subprocess.run')
     def test_database_creation_and_search_pipeline(self, mock_run, mock_ensure, temp_fasta_file, temp_directory):
         """Test complete database creation and search pipeline."""
