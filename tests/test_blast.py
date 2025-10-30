@@ -115,7 +115,7 @@ class TestRunBlastn:
         assert result is False
     
     @patch('probepy.blast.utils.ensure_blast_tools')
-    @patch('pathlib.Path.exists')
+    @patch('os.path.exists')
     @patch('subprocess.run')
     def test_successful_search_to_file(self, mock_run, mock_exists, mock_ensure, temp_fasta_file, temp_directory):
         """Test successful BLAST search with output file."""
@@ -140,7 +140,7 @@ class TestRunBlastn:
         assert '-out' in call_args
     
     @patch('probepy.blast.utils.ensure_blast_tools')
-    @patch('pathlib.Path.exists')
+    @patch('os.path.exists')
     @patch('subprocess.run')
     def test_successful_search_return_results(self, mock_run, mock_exists, mock_ensure, temp_fasta_file):
         """Test successful BLAST search returning results."""
@@ -158,7 +158,7 @@ class TestRunBlastn:
         assert "subject1" in result
     
     @patch('probepy.blast.utils.ensure_blast_tools')
-    @patch('pathlib.Path.exists')
+    @patch('os.path.exists')
     @patch('subprocess.run')
     def test_custom_parameters(self, mock_run, mock_exists, mock_ensure, temp_fasta_file):
         """Test BLAST search with custom parameters."""
@@ -249,7 +249,7 @@ class TestIntegration:
         assert db_success is True
         
         # Mock database files exist for search
-        with patch('pathlib.Path.exists', return_value=True):
+        with patch('os.path.exists', return_value=True):
             # Search database
             search_result = run_blastn(temp_fasta_file, db_name)
             assert isinstance(search_result, str)

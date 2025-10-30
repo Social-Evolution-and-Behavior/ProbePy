@@ -153,6 +153,28 @@ def temp_directory():
         pass
 
 
+@pytest.fixture
+def simple_genome_file():
+    """Create a simple genome FASTA file for testing."""
+    content = """>chr1
+ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG
+>chr2
+GCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGCGC
+"""
+    
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.fa', delete=False) as f:
+        f.write(content)
+        temp_path = f.name
+    
+    yield temp_path
+    
+    # Cleanup
+    try:
+        os.unlink(temp_path)
+    except (OSError, FileNotFoundError):
+        pass
+
+
 # Test data constants
 VALID_AMPLIFIERS = ["B1", "B2", "B3", "B4", "B5"]
 INVALID_AMPLIFIERS = ["B6", "A1", "invalid", ""]

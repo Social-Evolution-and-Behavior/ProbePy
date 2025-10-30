@@ -19,6 +19,10 @@ def update_transcriptome_object(
 
     # Create output path 
     output_path = os.path.join(base_dir, "input", species_identifier, f"{species_identifier}_transcriptome.pkl")
+    
+    # Create directory if it doesn't exist
+    output_dir = os.path.dirname(output_path)
+    os.makedirs(output_dir, exist_ok=True)
 
     # If the output file exists and overwrite is False, raise an error
     if os.path.exists(output_path) and not overwrite:

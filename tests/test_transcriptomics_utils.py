@@ -434,7 +434,9 @@ chr1\tHAVANA\texon\t10\t20\t.\t+\t.\tgene_id "GENE001"; transcript_id "TRANS001"
             )
             
             # Verify
-            assert len(sequence) == 10
+            # GTF coordinates 10-20 (1-based, inclusive) = 11 positions
+            # After conversion: [9:20] in 0-based = 11 bp
+            assert len(sequence) == 11
             assert isinstance(sequence, str)
             
         finally:

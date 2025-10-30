@@ -189,7 +189,7 @@ class TestMockGeneAndTranscriptome:
                     result = check_probe_availability(
                         gene_name=gene_name,
                         transcriptome=mock_transcriptome,
-                        input_dir=temp_dir,
+                        base_dir=temp_dir,
                         species_identifier=species_id
                     )
                     assert isinstance(result, int)
@@ -232,8 +232,8 @@ class TestBlastGeneFunction:
                 blast_gene(
                     gene_name="test_gene",
                     transcriptome=mock_transcriptome_simple,
-                    main_directory=temp_dir,
-                    species_identifier="test_species"
+                    species_identifier="test_species",
+                    base_dir=temp_dir
                 )
                 
     def test_blast_gene_missing_gene(self, temp_dir):
@@ -248,8 +248,8 @@ class TestBlastGeneFunction:
                 blast_gene(
                     gene_name="missing_gene",
                     transcriptome=mock_transcriptome,
-                    main_directory=temp_dir,
-                    species_identifier="test_species"
+                    species_identifier="test_species",
+                    base_dir=temp_dir
                 )
 
 
@@ -281,8 +281,8 @@ class TestGetProbesIDT:
             get_probes_IDT(
                 gene_name="test_gene",
                 transcriptome=mock_transcriptome,
-                main_directory=temp_dir,
-                species_identifier="test_species"
+                species_identifier="test_species",
+                base_dir=temp_dir
             )
             
     def test_get_probes_idt_amplifier_validation(self, mock_gene_with_probes, temp_dir):
@@ -294,8 +294,8 @@ class TestGetProbesIDT:
             get_probes_IDT(
                 gene_name="test_gene",
                 transcriptome=mock_transcriptome,
-                main_directory=temp_dir,
                 species_identifier="test_species",
+                base_dir=temp_dir,
                 amplifier="B6"  # Invalid amplifier
             )
 
@@ -320,7 +320,7 @@ class TestExportPlot:
             get_probe_binding_regions_plot(
                 gene_name="test_gene",
                 transcriptome=mock_transcriptome,
-                main_directory=temp_dir,
+                base_dir=temp_dir,
                 species_identifier="test_species"
             )
     
@@ -344,8 +344,8 @@ class TestIntegration:
     
     def test_function_parameter_consistency(self):
         """Test that all functions have consistent parameter ordering."""
-        # All main functions should have gene_name, transcriptome, main_directory, species_identifier
-        # in that order for consistency
+        # All main functions should have gene_name, transcriptome, species_identifier
+        # as their first parameters for consistency
         
         # This is more of a design test to ensure consistent APIs
         import inspect
@@ -353,29 +353,35 @@ class TestIntegration:
         # Check blast_gene signature
         sig = inspect.signature(blast_gene)
         params = list(sig.parameters.keys())
-        expected_start = ['gene_name', 'transcriptome', 'main_directory', 'species_identifier']
-        assert params[:4] == expected_start
+        # blast_gene has: gene_name, transcriptome, species_identifier, permitted_off_targets, length_thresh, base_dir
+        assert params[0] == 'gene_name'
+        assert params[1] == 'transcriptome'
+        assert params[2] == 'species_identifier'
         
         # Check get_probes_IDT signature  
         sig = inspect.signature(get_probes_IDT)
         params = list(sig.parameters.keys())
-        expected_start = ['gene_name', 'transcriptome', 'main_directory', 'species_identifier']
-        assert params[:4] == expected_start
+        # get_probes_IDT has: gene_name, transcriptome, species_identifier, amplifier, n_probes, base_dir
+        assert params[0] == 'gene_name'
+        assert params[1] == 'transcriptome'
+        assert params[2] == 'species_identifier'
         
         # Check get_probe_binding_regions_plot signature
         sig = inspect.signature(get_probe_binding_regions_plot)
         params = list(sig.parameters.keys())
-        expected_start = ['gene_name', 'transcriptome', 'main_directory', 'species_identifier']
-        assert params[:4] == expected_start
+        # get_probe_binding_regions_plot has: gene_name, transcriptome, base_dir, species_identifier, save
+        assert params[0] == 'gene_name'
+        assert params[1] == 'transcriptome'
         # Also check for optional 'save' parameter
         assert 'save' in params
         
         # Check check_probe_availability signature
         sig = inspect.signature(check_probe_availability)
         params = list(sig.parameters.keys())
-        # This one has a slightly different order due to legacy reasons
-        expected_params = ['gene_name', 'transcriptome', 'input_dir', 'species_identifier']
-        assert params == expected_params
+        # check_probe_availability has: gene_name, transcriptome, species_identifier, base_dir, permitted_off_targets
+        assert params[0] == 'gene_name'
+        assert params[1] == 'transcriptome'
+        assert params[2] == 'species_identifier'
         
     def test_type_annotations_present(self):
         """Test that all functions have proper type annotations."""

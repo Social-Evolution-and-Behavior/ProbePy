@@ -237,6 +237,7 @@ def download_with_rsync(
         pass
     
     print(f"File ready at: {output_path}")
+    return str(output_path)
 
 
 def export_mrna_to_fasta(
@@ -339,6 +340,8 @@ def export_mrna_to_fasta(
     
     if transcripts_no_introns == 0 and transcripts_yes_introns == 0:
         raise ValueError("No transcripts with sequence data found in transcriptome")
+    
+    return (no_introns_path, yes_introns_path)
 
 
 def create_blast_databases(

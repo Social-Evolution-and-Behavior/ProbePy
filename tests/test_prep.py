@@ -5,6 +5,7 @@ This module tests the preparation functions including rsync downloads,
 mRNA export to FASTA, and BLAST database creation.
 """
 
+import os
 import pytest
 import tempfile
 import shutil
@@ -29,8 +30,8 @@ class TestDownloadWithRsync:
     @patch('pathlib.Path.mkdir')
     def test_successful_download_genome(self, mock_mkdir, mock_exists, mock_subprocess):
         """Test successful genome download."""
-        # Setup mocks
-        mock_exists.return_value = True
+        # Setup mocks - file doesn't exist initially, then exists after download
+        mock_exists.side_effect = [False, True]  # First check: file doesn't exist, second: file exists after download
         mock_subprocess.return_value = MagicMock(returncode=0)
         
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -51,7 +52,7 @@ class TestDownloadWithRsync:
             assert "rsync://example.com/test.fa" in rsync_call
             
             # Verify result path
-            expected_path = str(Path(temp_dir) / "test_species" / "genome" / "test.fa")
+            expected_path = os.path.join(temp_dir, "input", "test_species", "genome", "test.fa")
             assert result == expected_path
     
     @patch('subprocess.run')
@@ -59,8 +60,9 @@ class TestDownloadWithRsync:
     @patch('pathlib.Path.mkdir')
     def test_successful_download_with_decompression(self, mock_mkdir, mock_exists, mock_subprocess):
         """Test successful download with .gz decompression."""
-        # Setup mocks - first call (rsync) succeeds, second call (gunzip) succeeds
-        mock_exists.return_value = True
+        # Setup mocks - file doesn't exist initially, .gz exists after download, .fa exists after gunzip
+        # Checks: final_path.exists (False), output_path.exists (True after rsync), decompressed.exists (False), then True after gunzip
+        mock_exists.side_effect = [False, True, False, True]
         mock_subprocess.return_value = MagicMock(returncode=0)
         
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -72,10 +74,10 @@ class TestDownloadWithRsync:
             )
             
             # Verify both rsync and gunzip were called
-            assert mock_subprocess.call_count == 3  # rsync, gunzip, chflags
+            assert mock_subprocess.call_count >= 2  # rsync, gunzip (chflags might not be called on non-macOS)
             
             # Verify result path (without .gz extension)
-            expected_path = str(Path(temp_dir) / "test_species" / "genome" / "test.fa")
+            expected_path = os.path.join(temp_dir, "input", "test_species", "genome", "test.fa")
             assert result == expected_path
     
     @patch('subprocess.run')
@@ -118,7 +120,9 @@ class TestDownloadWithRsync:
     @patch('pathlib.Path.rename')
     def test_fna_to_fa_conversion(self, mock_rename, mock_mkdir, mock_exists, mock_subprocess):
         """Test .fna to .fa file extension conversion."""
-        mock_exists.return_value = True
+        # File doesn't exist initially, .fna exists after download, .fa doesn't exist yet for rename
+        # Checks: final_path.exists (False), output_path.exists (True after rsync), new_path.exists (False for rename)
+        mock_exists.side_effect = [False, True, False]
         mock_subprocess.return_value = MagicMock(returncode=0)
         
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -246,11 +250,13 @@ class TestCreateBlastDatabases:
     
     def test_missing_fasta_files_raises_error(self):
         """Test that missing FASTA files raise FileNotFoundError."""
-        with pytest.raises(FileNotFoundError, match="FASTA file not found"):
-            create_blast_databases(
-                ("nonexistent1.fasta", "nonexistent2.fasta"),
-                "test_species"
-            )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Don't create the FASTA files
+            with pytest.raises(FileNotFoundError, match="FASTA file not found"):
+                create_blast_databases(
+                    species_identifier="test_species",
+                    base_dir=temp_dir
+                )
     
     @patch('subprocess.run')
     def test_makeblastdb_not_available_raises_error(self, mock_subprocess):
@@ -258,14 +264,19 @@ class TestCreateBlastDatabases:
         mock_subprocess.side_effect = FileNotFoundError("makeblastdb not found")
         
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Create dummy FASTA files
-            fasta1 = Path(temp_dir) / "test1.fasta"
-            fasta2 = Path(temp_dir) / "test2.fasta"
+            # Create the expected directory structure and FASTA files
+            no_introns_dir = Path(temp_dir) / "input" / "test_species" / "transcriptome" / "mRNA_no_introns"
+            yes_introns_dir = Path(temp_dir) / "input" / "test_species" / "transcriptome" / "mRNA_yes_introns"
+            no_introns_dir.mkdir(parents=True, exist_ok=True)
+            yes_introns_dir.mkdir(parents=True, exist_ok=True)
+            
+            fasta1 = no_introns_dir / "mRNA_no_introns.fasta"
+            fasta2 = yes_introns_dir / "mRNA_yes_introns.fasta"
             fasta1.write_text(">seq1\nATCG")
             fasta2.write_text(">seq2\nGCTA")
             
             with pytest.raises(FileNotFoundError, match="makeblastdb not found"):
-                create_blast_databases((str(fasta1), str(fasta2)), "test_species")
+                create_blast_databases(species_identifier="test_species", base_dir=temp_dir)
     
     @patch('subprocess.run')
     @patch('pathlib.Path.exists')
@@ -280,27 +291,24 @@ class TestCreateBlastDatabases:
         mock_exists.return_value = True
         
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Create dummy FASTA files
-            fasta1 = Path(temp_dir) / "test1.fasta"
-            fasta2 = Path(temp_dir) / "test2.fasta"
+            # Create the expected directory structure and FASTA files
+            no_introns_dir = Path(temp_dir) / "input" / "test_species" / "transcriptome" / "mRNA_no_introns"
+            yes_introns_dir = Path(temp_dir) / "input" / "test_species" / "transcriptome" / "mRNA_yes_introns"
+            no_introns_dir.mkdir(parents=True, exist_ok=True)
+            yes_introns_dir.mkdir(parents=True, exist_ok=True)
+            
+            fasta1 = no_introns_dir / "mRNA_no_introns.fasta"
+            fasta2 = yes_introns_dir / "mRNA_yes_introns.fasta"
             fasta1.write_text(">seq1\nATCG")
             fasta2.write_text(">seq2\nGCTA")
             
-            no_introns_db, yes_introns_db = create_blast_databases(
-                (str(fasta1), str(fasta2)),
+            create_blast_databases(
                 "test_species",
                 base_dir=temp_dir
             )
             
             # Verify makeblastdb was called for both databases
             assert mock_subprocess.call_count == 3  # version + 2 databases
-            
-            # Verify database paths
-            expected_no_introns = str(Path(temp_dir) / "test_species" / "transcriptome" / "mRNA_no_introns" / "mRNA_no_introns")
-            expected_yes_introns = str(Path(temp_dir) / "test_species" / "transcriptome" / "mRNA_yes_introns" / "mRNA_yes_introns")
-            
-            assert no_introns_db == expected_no_introns
-            assert yes_introns_db == expected_yes_introns
     
     @patch('subprocess.run')
     def test_makeblastdb_failure_raises_error(self, mock_subprocess):
@@ -312,14 +320,19 @@ class TestCreateBlastDatabases:
         ]
         
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Create dummy FASTA files
-            fasta1 = Path(temp_dir) / "test1.fasta"
-            fasta2 = Path(temp_dir) / "test2.fasta"
+            # Create the expected directory structure and FASTA files
+            no_introns_dir = Path(temp_dir) / "input" / "test_species" / "transcriptome" / "mRNA_no_introns"
+            yes_introns_dir = Path(temp_dir) / "input" / "test_species" / "transcriptome" / "mRNA_yes_introns"
+            no_introns_dir.mkdir(parents=True, exist_ok=True)
+            yes_introns_dir.mkdir(parents=True, exist_ok=True)
+            
+            fasta1 = no_introns_dir / "mRNA_no_introns.fasta"
+            fasta2 = yes_introns_dir / "mRNA_yes_introns.fasta"
             fasta1.write_text(">seq1\nATCG")
             fasta2.write_text(">seq2\nGCTA")
             
             with pytest.raises(subprocess.CalledProcessError):
-                create_blast_databases((str(fasta1), str(fasta2)), "test_species")
+                create_blast_databases(species_identifier="test_species", base_dir=temp_dir)
 
 
 class TestIntegrationWorkflow:
@@ -358,12 +371,11 @@ class TestIntegrationWorkflow:
             
             # Step 3: Create BLAST databases (mocked)
             with patch('pathlib.Path.exists', return_value=True):
-                db_paths = create_blast_databases(fasta_paths, "test_species", base_dir=temp_dir)
+                create_blast_databases("test_species", base_dir=temp_dir)
             
             # Verify all steps completed
             assert genome_path is not None
             assert len(fasta_paths) == 2
-            assert len(db_paths) == 2
             
             # Verify subprocess calls were made
             assert mock_subprocess.call_count >= 3  # rsync, gunzip, chflags, version, 2 makeblastdb

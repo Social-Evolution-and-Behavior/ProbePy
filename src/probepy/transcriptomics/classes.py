@@ -170,6 +170,21 @@ class Gene:
         """Add transcript to the gene"""
         self.transcripts.append(transcript)
 
+    def get_transcript(self, transcript_id: str) -> Optional['Transcript']:
+        """
+        Get a specific transcript by its ID.
+        
+        Args:
+            transcript_id (str): Transcript identifier to search for
+            
+        Returns:
+            Optional[Transcript]: Transcript object if found, None otherwise
+        """
+        for transcript in self.transcripts:
+            if transcript.name == transcript_id or transcript_id in transcript.name:
+                return transcript
+        return None
+    
     def get_transcript_longest_cds(self):
         """Get the transcript with the longest CDS"""
         if len(self.transcripts) == 0: 

@@ -542,12 +542,8 @@ class TestIntegration:
     @patch('subprocess.run')
     def test_check_and_ensure_workflow(self, mock_run):
         """Test complete check and ensure workflow."""
-        # First check fails, then succeeds
-        mock_results = [
-            FileNotFoundError(),  # ensure_blast_tools check
-        ]
-        
-        mock_run.side_effect = mock_results
+        # First check fails
+        mock_run.side_effect = FileNotFoundError()
         
         # Check tools
         status = check_blast_tools()
