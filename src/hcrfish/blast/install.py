@@ -102,7 +102,7 @@ def ensure_blast_tools() -> bool:
         return True
         
     except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        print("BLAST+ tools not found. Please run hcrfish.install_blast_tools() to install them.")
+        print("BLAST+ tools not found. Please run probepy.install_blast_tools() to install them.")
         return False
 
 

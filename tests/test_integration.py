@@ -10,11 +10,11 @@ import tempfile
 import os
 from pathlib import Path
 
-import hcrfish
-from hcrfish.hcr.utils import design_hcr_probes, reverse_complement, get_amplifier
-from hcrfish.blast.blast_utils import check_blast_tools
-from hcrfish.plotting.utils import white_plotting, black_plotting
-from hcrfish.transcriptomics.classes import Transcriptome, Gene, Transcript
+import probepy
+from probepy.hcr.utils import design_hcr_probes, reverse_complement, get_amplifier
+from probepy.blast.blast_utils import check_blast_tools
+from probepy.plotting.utils import white_plotting, black_plotting
+from probepy.transcriptomics.classes import Transcriptome, Gene, Transcript
 
 
 class TestPackageImports:
@@ -22,12 +22,12 @@ class TestPackageImports:
     
     def test_main_package_import(self):
         """Test importing main package."""
-        assert hcrfish is not None
-        assert hasattr(hcrfish, '__version__') or True  # May not have version yet
+        assert probepy is not None
+        assert hasattr(probepy, '__version__') or True  # May not have version yet
     
     def test_submodule_imports(self):
         """Test importing all submodules."""
-        from hcrfish import hcr, blast, plotting, transcriptomics
+        from probepy import hcr, blast, plotting, transcriptomics
         
         assert hcr is not None
         assert blast is not None
@@ -36,10 +36,10 @@ class TestPackageImports:
     
     def test_function_imports(self):
         """Test importing main functions."""
-        from hcrfish.hcr import design_hcr_probes, reverse_complement, get_amplifier
-        from hcrfish.blast import check_blast_tools, run_makeblastdb, run_blastn
-        from hcrfish.plotting import white_plotting, black_plotting
-        from hcrfish.transcriptomics import (
+        from probepy.hcr import design_hcr_probes, reverse_complement, get_amplifier
+        from probepy.blast import check_blast_tools, run_makeblastdb, run_blastn
+        from probepy.plotting import white_plotting, black_plotting
+        from probepy.transcriptomics import (
             Transcriptome, Gene, Transcript, 
             generate_transcriptome_object,
             load_transcriptome_object

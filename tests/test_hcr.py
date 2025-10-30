@@ -1,5 +1,5 @@
 """
-Tests for hcrfish.hcr module.
+Tests for probepy.hcr module.
 
 This module tests the core HCR probe design functionality including
 sequence manipulation, amplifier sequences, and probe generation.
@@ -9,7 +9,7 @@ import pytest
 import numpy as np
 from typing import List, Tuple
 
-from hcrfish.hcr.utils import (
+from probepy.hcr.utils import (
     reverse_complement, 
     get_amplifier, 
     design_hcr_probes,
@@ -481,7 +481,7 @@ class TestAssignTarget:
     
     def test_assign_target_empty_gene(self, sample_transcriptome):
         """Test error when gene has no transcripts."""
-        from hcrfish.transcriptomics.classes import Gene
+        from probepy.transcriptomics.classes import Gene
         
         # Create transcriptome with empty gene
         empty_gene = Gene("FBgn_empty", "empty_gene")

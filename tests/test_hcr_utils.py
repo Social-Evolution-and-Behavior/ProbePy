@@ -14,7 +14,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-from hcrfish.hcr.utils import (
+from probepy.hcr.utils import (
     reverse_complement,
     get_amplifier,
     design_hcr_probes,
@@ -23,7 +23,7 @@ from hcrfish.hcr.utils import (
     get_probe_binding_regions_plot,
     check_probe_availability
 )
-from hcrfish.transcriptomics.classes import Gene, Transcriptome
+from probepy.transcriptomics.classes import Gene, Transcriptome
 
 
 class TestBasicUtils:
@@ -175,7 +175,7 @@ class TestMockGeneAndTranscriptome:
         with open(os.path.join(blast_output_dir, f"{gene_name}_blasted_yes_introns.csv"), 'w') as f:
             f.write("query_id,subject_id,subject_acc,percent_identity,length,mismatches,gap_opens,q_start,q_end,s_start,s_end,evalue,bitscore\n")
         
-        with patch('hcrfish.hcr.utils.check_blast_tools') as mock_blast_check:
+        with patch('probepy.hcr.utils.check_blast_tools') as mock_blast_check:
             mock_blast_check.return_value = {'blastn': {'available': True}}
             
             with patch('subprocess.run') as mock_subprocess:
@@ -223,7 +223,7 @@ class TestBlastGeneFunction:
         
     def test_blast_gene_parameter_validation(self, mock_transcriptome_simple, temp_dir):
         """Test parameter validation for blast_gene function."""
-        with patch('hcrfish.hcr.utils.check_blast_tools') as mock_blast_check:
+        with patch('probepy.hcr.utils.check_blast_tools') as mock_blast_check:
             mock_blast_check.return_value = {'blastn': {'available': False}}
             
             with pytest.raises(Exception, match="blastn not found"):
@@ -239,7 +239,7 @@ class TestBlastGeneFunction:
         mock_transcriptome = Mock(spec=Transcriptome)
         mock_transcriptome.get_gene.return_value = None
         
-        with patch('hcrfish.hcr.utils.check_blast_tools') as mock_blast_check:
+        with patch('probepy.hcr.utils.check_blast_tools') as mock_blast_check:
             mock_blast_check.return_value = {'blastn': {'available': True}}
             
             with pytest.raises(ValueError, match="Gene not found"):

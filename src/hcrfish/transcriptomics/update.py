@@ -1,6 +1,6 @@
 import pickle
 import os
-from hcrfish.transcriptomics.main import generate_transcriptome_object
+from probepy.transcriptomics.main import generate_transcriptome_object
 
 def update_transcriptome_object(
         genome_path, 

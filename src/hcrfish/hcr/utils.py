@@ -15,8 +15,8 @@ from pygenomeviz import GenomeViz
 import Bio.SeqIO as SeqIO
 import matplotlib.pyplot as plt
 
-from hcrfish.blast.install import check_blast_tools
-from hcrfish.transcriptomics.classes import Gene, Transcriptome
+from probepy.blast.install import check_blast_tools
+from probepy.transcriptomics.classes import Gene, Transcriptome
 
 
 def reverse_complement(sequence: str) -> str:

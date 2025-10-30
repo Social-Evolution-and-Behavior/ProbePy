@@ -10,7 +10,7 @@ import subprocess
 from typing import Optional
 from pathlib import Path
 
-from hcrfish.transcriptomics.classes import Transcriptome
+from probepy.transcriptomics.classes import Transcriptome
 
 
 def download_with_rsync(
@@ -263,7 +263,7 @@ def export_mrna_to_fasta(
         OSError: If output directories cannot be created or files cannot be written
         
     Examples:
-        >>> from hcrfish.transcriptomics import load_transcriptome_object
+        >>> from probepy.transcriptomics import load_transcriptome_object
         >>> transcriptome = load_transcriptome_object("dmel_transcriptome")
         >>> no_introns_path, yes_introns_path = export_mrna_to_fasta(transcriptome, "dmel")
         >>> print(f"Exported mature mRNA to: {no_introns_path}")

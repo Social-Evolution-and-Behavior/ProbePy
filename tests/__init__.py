@@ -1,6 +1,6 @@
 """
-Test suite for hcrfish package.
+Test suite for probepy package.
 
-This package contains comprehensive tests for all modules in the hcrfish
+This package contains comprehensive tests for all modules in the probepy
 HCR-FISH probe design toolkit.
 """

@@ -1,5 +1,5 @@
 """
-Tests for hcrfish.transcriptomics module.
+Tests for probepy.transcriptomics module.
 
 This module tests the transcriptomics data structures and functions
 including Transcriptome, Gene, Transcript, and genomic feature classes.
@@ -9,7 +9,7 @@ import pytest
 import numpy as np
 from typing import Dict, List
 
-from hcrfish.transcriptomics.classes import (
+from probepy.transcriptomics.classes import (
     Transcriptome, Gene, Transcript, Exon, CDS, UTR, Intron
 )
 

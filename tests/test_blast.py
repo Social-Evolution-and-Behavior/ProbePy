@@ -1,5 +1,5 @@
 """
-Tests for hcrfish.blast module.
+Tests for probepy.blast module.
 
 This module tests BLAST-related functionality including tool checking,
 database creation, and sequence searching.
@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from hcrfish.blast.blast_utils import (
+from probepy.blast.blast_utils import (
     check_blast_tools,
     ensure_blast_tools, 
     run_makeblastdb,
@@ -149,7 +149,7 @@ class TestRunMakeblastdb:
         result = run_makeblastdb(temp_fasta_file, "test_db", dbtype="invalid")
         assert result is False
     
-    @patch('hcrfish.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.blast_utils.ensure_blast_tools')
     def test_blast_tools_not_available(self, mock_ensure, temp_fasta_file):
         """Test when BLAST tools are not available."""
         mock_ensure.return_value = False
@@ -158,7 +158,7 @@ class TestRunMakeblastdb:
         
         assert result is False
     
-    @patch('hcrfish.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.blast_utils.ensure_blast_tools')
     @patch('subprocess.run')
     def test_successful_database_creation(self, mock_run, mock_ensure, temp_fasta_file):
         """Test successful database creation."""
@@ -180,7 +180,7 @@ class TestRunMakeblastdb:
         assert '-dbtype' in call_args
         assert '-out' in call_args
     
-    @patch('hcrfish.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.blast_utils.ensure_blast_tools')
     @patch('subprocess.run')
     def test_database_creation_failure(self, mock_run, mock_ensure, temp_fasta_file):
         """Test database creation failure."""
@@ -191,7 +191,7 @@ class TestRunMakeblastdb:
         
         assert result is False
     
-    @patch('hcrfish.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.blast_utils.ensure_blast_tools')
     @patch('subprocess.run')
     def test_timeout_handling(self, mock_run, mock_ensure, temp_fasta_file):
         """Test timeout handling in database creation."""
@@ -211,7 +211,7 @@ class TestRunBlastn:
         result = run_blastn("/nonexistent/query.fasta", "database")
         assert result is False
     
-    @patch('hcrfish.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.blast_utils.ensure_blast_tools')
     def test_blast_tools_not_available(self, mock_ensure, temp_fasta_file):
         """Test when BLAST tools are not available."""
         mock_ensure.return_value = False
@@ -220,7 +220,7 @@ class TestRunBlastn:
         
         assert result is False
     
-    @patch('hcrfish.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.blast_utils.ensure_blast_tools')
     @patch('pathlib.Path.exists')
     def test_database_not_found(self, mock_exists, mock_ensure, temp_fasta_file):
         """Test when database files don't exist."""
@@ -231,7 +231,7 @@ class TestRunBlastn:
         
         assert result is False
     
-    @patch('hcrfish.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.blast_utils.ensure_blast_tools')
     @patch('pathlib.Path.exists')
     @patch('subprocess.run')
     def test_successful_search_to_file(self, mock_run, mock_exists, mock_ensure, temp_fasta_file, temp_directory):
@@ -256,7 +256,7 @@ class TestRunBlastn:
         assert '-db' in call_args
         assert '-out' in call_args
     
-    @patch('hcrfish.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.blast_utils.ensure_blast_tools')
     @patch('pathlib.Path.exists')
     @patch('subprocess.run')
     def test_successful_search_return_results(self, mock_run, mock_exists, mock_ensure, temp_fasta_file):
@@ -274,7 +274,7 @@ class TestRunBlastn:
         assert "query1" in result
         assert "subject1" in result
     
-    @patch('hcrfish.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.blast_utils.ensure_blast_tools')
     @patch('pathlib.Path.exists')
     @patch('subprocess.run')
     def test_custom_parameters(self, mock_run, mock_exists, mock_ensure, temp_fasta_file):
@@ -307,7 +307,7 @@ class TestRunBlastn:
         assert '-word_size' in call_args
         assert '11' in call_args
     
-    @patch('hcrfish.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.blast_utils.ensure_blast_tools')
     @patch('pathlib.Path.exists')
     @patch('subprocess.run')
     def test_search_failure(self, mock_run, mock_exists, mock_ensure, temp_fasta_file):
@@ -320,7 +320,7 @@ class TestRunBlastn:
         
         assert result is False
     
-    @patch('hcrfish.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.blast_utils.ensure_blast_tools')
     @patch('pathlib.Path.exists')
     @patch('subprocess.run')
     def test_search_timeout(self, mock_run, mock_exists, mock_ensure, temp_fasta_file):
@@ -337,7 +337,7 @@ class TestRunBlastn:
 class TestIntegration:
     """Integration tests for BLAST functionality."""
     
-    @patch('hcrfish.blast.blast_utils.ensure_blast_tools')
+    @patch('probepy.blast.blast_utils.ensure_blast_tools')
     @patch('subprocess.run')
     def test_database_creation_and_search_pipeline(self, mock_run, mock_ensure, temp_fasta_file, temp_directory):
         """Test complete database creation and search pipeline."""

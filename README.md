@@ -28,8 +28,8 @@ poetry install
 The package facilitates the installation of NCBI BLAST+ command line tools. 
 
 ```python
-import hcrfish
-hcrfish.install_blast_tools()
+import probepy
+probepy.install_blast_tools()
 ```
 
 Alternatively, you can install it yourself: 
@@ -42,13 +42,13 @@ Alternatively, you can install it yourself:
 ### 1. Basic Probe Design Workflow
 
 ```python
-import hcrfish
+import probepy
 
 # Check BLAST tools availability
-hcrfish.check_blast_tools()
+probepy.check_blast_tools()
 
 # Load transcriptome object (pre-built or create new)
-transcriptome = hcrfish.load_transcriptome_object("species_transcriptome")
+transcriptome = probepy.load_transcriptome_object("species_transcriptome")
 
 # Get gene of interest
 gene = transcriptome.get_gene("Or9a")
@@ -56,7 +56,7 @@ transcript = gene.get_transcript_longest_cds()
 
 # Design HCR probes
 sequence = transcript.mrna_sequence
-probes, regions, positions = hcrfish.design_hcr_probes(sequence, "B3")
+probes, regions, positions = probepy.design_hcr_probes(sequence, "B3")
 
 print(f"Designed {len(probes)} probe pairs for {gene.name}")
 ```

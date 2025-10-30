@@ -11,7 +11,7 @@ import subprocess
 import sys
 import os
 from typing import Union, Any, Optional
-from hcrfish.blast.install import ensure_blast_tools
+from probepy.blast.install import ensure_blast_tools
 
 def run_makeblastdb(
     input_fasta: str,

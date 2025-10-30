@@ -1,5 +1,5 @@
 """
-Tests for hcrfish.hcr.prep module.
+Tests for probepy.hcr.prep module.
 
 This module tests the preparation functions including rsync downloads,
 mRNA export to FASTA, and BLAST database creation.
@@ -12,8 +12,8 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock, mock_open
 import subprocess
 
-from hcrfish.hcr.prep import download_with_rsync, export_mrna_to_fasta, create_blast_databases
-from hcrfish.transcriptomics.classes import Transcriptome, Gene, Transcript
+from probepy.hcr.prep import download_with_rsync, export_mrna_to_fasta, create_blast_databases
+from probepy.transcriptomics.classes import Transcriptome, Gene, Transcript
 
 
 class TestDownloadWithRsync:

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, Any
 
 import numpy as np
-from hcrfish.transcriptomics.classes import Transcriptome, Gene, Transcript, Exon, CDS, UTR
+from probepy.transcriptomics.classes import Transcriptome, Gene, Transcript, Exon, CDS, UTR
 
 
 @pytest.fixture

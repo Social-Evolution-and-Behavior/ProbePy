@@ -1,7 +1,7 @@
 from tqdm import tqdm 
 from Bio import SeqIO
-from hcrfish.transcriptomics.classes import Transcriptome, Gene, Transcript, Exon, Intron, UTR, CDS 
-from hcrfish.transcriptomics.utils import get_sequence, gtf_to_dataframe
+from probepy.transcriptomics.classes import Transcriptome, Gene, Transcript, Exon, Intron, UTR, CDS 
+from probepy.transcriptomics.utils import get_sequence, gtf_to_dataframe
 
 def generate_transcriptome_object(transcriptome_gtf_path, genome_fasta_path): 
     
