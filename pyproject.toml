@@ -1,19 +1,18 @@
 [tool.poetry]
 name = "probepy"
 version = "0.1.0"
-description = "HCR-FISH probe design toolkit for transcriptomics research"
+description = "FISH probe design toolkit for transcriptomics research"
 authors = ["Giacomo Glotzer <gglotzer@rockefeller.edu>"]
 maintainers = ["Giacomo Glotzer <gglotzer@rockefeller.edu>"]
 readme = "README.md"
-homepage = "https://github.com/GiacomoGlotzer/hcr_probe_design_general"
-repository = "https://github.com/GiacomoGlotzer/hcr_probe_design_general"
-documentation = "https://github.com/GiacomoGlotzer/hcr_probe_design_general/README.md"
+homepage = "https://github.com/Social-Evolution-and-Behavior/ProbePy"
+repository = "https://github.com/Social-Evolution-and-Behavior/ProbePy"
+documentation = "https://github.com/Social-Evolution-and-Behavior/ProbePy/README.md"
 keywords = ["hcr-fish", "probe-design", "transcriptomics", "bioinformatics", "molecular-biology"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
