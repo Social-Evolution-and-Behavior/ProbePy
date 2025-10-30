@@ -370,7 +370,6 @@ def blast_gene(
         raise Exception(f"BLAST against introns database failed: {e}")
 
     print(f"BLAST searches completed for {gene.name}. Results saved to {gene_seq_blast_output_dir}")
-
     
     if permitted_off_targets is None:
         permitted_off_targets = []
@@ -436,7 +435,7 @@ def blast_gene(
     permitted_off_targets = [term for term in permitted_off_targets if term]
 
     # Identify permitted off-targets
-    blast_results['permitted_off_target'] = blast_results['subject_id'].apply(
+    blast_results['permitted_off_target'] = blast_results['subject_gene_id'].apply(
         lambda subject_id: any(keyword in subject_id for keyword in permitted_off_targets)
     )
 
@@ -650,8 +649,19 @@ def get_probe_binding_regions_plot(
     regions = gene.regions
 
     # Load genome sequence
-    genome_fasta_path = os.path.join(base_dir, "input", species_identifier, "genome", "genome_fasta.fa")
+    genome_fasta_dir = os.path.join(base_dir, "input", species_identifier, "genome")
 
+    # Look for a file ending with .fa or .fasta
+    genome_fasta_path = None
+    for file in os.listdir(genome_fasta_dir):
+        if file.endswith('.fa') or file.endswith('.fasta'):
+            genome_fasta_path = os.path.join(genome_fasta_dir, file)
+            break
+
+    if genome_fasta_path is None:
+        raise FileNotFoundError(f"No genome FASTA file found in {genome_fasta_dir}")
+
+     # Load genome sequences into a dictionary
     try:
         genome_seq = SeqIO.to_dict(SeqIO.parse(genome_fasta_path, "fasta"))
     except FileNotFoundError:
@@ -767,6 +777,7 @@ def check_probe_availability(
     transcriptome: Transcriptome,
     species_identifier: str,
     base_dir: str = "",
+    permitted_off_targets: Optional[List[str]] = None,
 ) -> int:
     """
     Check the number of HCR-FISH probes available for a given gene.
@@ -806,25 +817,20 @@ def check_probe_availability(
         gene = transcriptome.get_gene(gene_name)
         if gene is None:
             raise ValueError(f"Gene '{gene_name}' not found in transcriptome")
-
-        # Get the longest CDS transcript for probe design
-        try:
-            transcript = gene.get_transcript_longest_cds()
-            if transcript is None:
-                raise ValueError(f"No CDS transcript found for gene '{gene_name}'")
-        except Exception as e:
-            raise ValueError(f"Failed to get transcript for gene '{gene_name}': {e}")
-
-        # Extract mRNA sequence for probe design
-        if not hasattr(transcript, 'mrna_sequence') or transcript.mrna_sequence is None:
-            raise ValueError(f"No mRNA sequence available for gene '{gene_name}'")
         
-        gene.target_sequence = transcript.mrna_sequence
-        print(f"Target sequence length for {gene_name}: {len(gene.target_sequence)} bp")
+        # Get the target sequence 
+        if not hasattr(gene, 'target_sequence') or gene.target_sequence is None:
+            raise ValueError(f"Gene '{gene_name}' does not have a target_sequence attribute")
 
         # Perform BLAST analysis and process results to identify off-target regions
         print(f"Running BLAST analysis for {gene_name}...")
-        gene = blast_gene(gene_name, transcriptome, base_dir, species_identifier)
+        blast_gene(
+            gene_name,
+            transcriptome,
+            species_identifier=species_identifier,
+            base_dir=base_dir,
+            permitted_off_targets=permitted_off_targets
+        )
 
         # Design probes on unique regions using B1 amplifier
         print(f"Designing HCR-FISH probes for {gene_name}...")
