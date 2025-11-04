@@ -7,10 +7,13 @@ sequences to FASTA format, and creating BLAST databases for probe design workflo
 
 import os
 import subprocess
+import logging
 from typing import Optional
 from pathlib import Path
 
 from probepy.transcriptomics.classes import Transcriptome
+
+logger = logging.getLogger(__name__)
 
 
 def download_with_rsync(
@@ -89,14 +92,14 @@ def download_with_rsync(
     
     # Check if final file already exists
     if final_path.exists() and not overwrite:
-        print(f"File already exists: {final_path}")
-        print("Skipping download (use overwrite=True to force re-download)")
+        logger.info(f"File already exists: {final_path}")
+        logger.info("Skipping download (use overwrite=True to force re-download)")
         return str(final_path)
     
-    print(f"Downloading {rsync_path}")
-    print(f"Destination: {output_path}")
+    logger.info(f"Downloading {rsync_path}")
+    logger.info(f"Destination: {output_path}")
     if final_path != output_path:
-        print(f"Final processed file will be: {final_path}")
+        logger.info(f"Final processed file will be: {final_path}")
     
     # Download file with rsync
     rsync_command = [
@@ -114,7 +117,7 @@ def download_with_rsync(
             capture_output=True,
             text=True
         )
-        print("Download completed successfully")
+        logger.info("Download completed successfully")
         
     except subprocess.CalledProcessError as e:
         raise subprocess.CalledProcessError(
@@ -133,17 +136,17 @@ def download_with_rsync(
         
         # Check if decompressed file already exists
         if decompressed_path.exists() and not overwrite:
-            print(f"Decompressed file already exists: {decompressed_path}")
-            print("Removing downloaded .gz file")
+            logger.info(f"Decompressed file already exists: {decompressed_path}")
+            logger.info("Removing downloaded .gz file")
             if output_path.exists():
                 output_path.unlink()  # Remove the .gz file since we have the decompressed version
             output_path = decompressed_path
         else:
-            print(f"Decompressing {output_path}")
+            logger.info(f"Decompressing {output_path}")
             
             # If overwrite=True and decompressed file exists, remove it to avoid gunzip conflicts
             if overwrite and decompressed_path.exists():
-                print(f"Removing existing decompressed file: {decompressed_path}")
+                logger.info(f"Removing existing decompressed file: {decompressed_path}")
                 decompressed_path.unlink()
             
             # Check if the .gz file actually exists before trying to decompress
@@ -155,8 +158,8 @@ def download_with_rsync(
                 with open(output_path, 'rb') as f:
                     magic = f.read(2)
                     if magic != b'\x1f\x8b':
-                        print(f"Warning: File {output_path} does not appear to be gzipped (magic number: {magic.hex()})")
-                        print("Treating as already decompressed and renaming...")
+                        logger.warning(f"File {output_path} does not appear to be gzipped (magic number: {magic.hex()})")
+                        logger.warning("Treating as already decompressed and renaming...")
                         # Rename the file to remove .gz extension
                         output_path.rename(decompressed_path)
                         output_path = decompressed_path
@@ -168,7 +171,7 @@ def download_with_rsync(
                             result = subprocess.run(gunzip_command, check=True, capture_output=True, text=True)
                             # Update path to point to decompressed file
                             output_path = decompressed_path
-                            print(f"Successfully decompressed to: {output_path}")
+                            logger.info(f"Successfully decompressed to: {output_path}")
                             
                         except subprocess.CalledProcessError as e:
                             # Provide more detailed error information
@@ -180,8 +183,8 @@ def download_with_rsync(
                             
                             # Check if the file might already be decompressed
                             if decompressed_path.exists():
-                                print(f"Warning: gunzip failed, but decompressed file exists: {decompressed_path}")
-                                print("Using existing decompressed file")
+                                logger.warning(f"gunzip failed, but decompressed file exists: {decompressed_path}")
+                                logger.warning("Using existing decompressed file")
                                 if output_path.exists():
                                     output_path.unlink()  # Remove the problematic .gz file
                                 output_path = decompressed_path
@@ -192,18 +195,18 @@ def download_with_rsync(
                                     error_msg
                                 )
             except Exception as e:
-                print(f"Warning: Could not check file format: {e}")
+                logger.warning(f"Could not check file format: {e}")
                 # Fall back to trying gunzip anyway
                 gunzip_command = ["gunzip", str(output_path)]
                 try:
                     result = subprocess.run(gunzip_command, check=True, capture_output=True, text=True)
                     output_path = decompressed_path
-                    print(f"Successfully decompressed to: {output_path}")
+                    logger.info(f"Successfully decompressed to: {output_path}")
                 except subprocess.CalledProcessError as e:
                     error_msg = f"Decompression failed for {output_path}: {e.stderr if e.stderr else str(e)}"
                     if decompressed_path.exists():
-                        print(f"Warning: gunzip failed, but decompressed file exists: {decompressed_path}")
-                        print("Using existing decompressed file")
+                        logger.warning(f"gunzip failed, but decompressed file exists: {decompressed_path}")
+                        logger.warning("Using existing decompressed file")
                         if output_path.exists():
                             output_path.unlink()
                         output_path = decompressed_path
@@ -216,14 +219,14 @@ def download_with_rsync(
         
         # Check if .fa file already exists
         if new_path.exists() and not overwrite:
-            print(f"Converted file already exists: {new_path}")
-            print("Removing .fna file")
+            logger.info(f"Converted file already exists: {new_path}")
+            logger.info("Removing .fna file")
             output_path.unlink()  # Remove the .fna file since we have the .fa version
             output_path = new_path
         else:
             output_path.rename(new_path)
             output_path = new_path
-            print(f"Renamed to {output_path}")
+            logger.info(f"Renamed to {output_path}")
     
     # Remove hidden file flags on macOS
     try:
@@ -236,7 +239,7 @@ def download_with_rsync(
         # chflags not available (not on macOS)
         pass
     
-    print(f"File ready at: {output_path}")
+    logger.info(f"File ready at: {output_path}")
     return str(output_path)
 
 
@@ -294,11 +297,11 @@ def export_mrna_to_fasta(
     # Check if files already exist and skip if overwrite=False
     if not overwrite:
         if Path(no_introns_path).exists() and Path(yes_introns_path).exists():
-            print(f"FASTA files already exist for {species_identifier}")
-            print("Skipping export (use overwrite=True to force re-export)")
+            logger.info(f"FASTA files already exist for {species_identifier}")
+            logger.info("Skipping export (use overwrite=True to force re-export)")
             return (no_introns_path, yes_introns_path)
 
-    print(f"Exporting mRNA sequences for {len(transcriptome.genes)} genes...")
+    logger.info(f"Exporting mRNA sequences for {len(transcriptome.genes)} genes...")
     
     transcripts_no_introns = 0
     transcripts_yes_introns = 0
@@ -335,8 +338,8 @@ def export_mrna_to_fasta(
     except OSError as e:
         raise OSError(f"Failed to write FASTA files: {e}")
     
-    print(f"Exported {transcripts_no_introns} transcripts to {no_introns_path}")
-    print(f"Exported {transcripts_yes_introns} transcripts to {yes_introns_path}")
+    logger.info(f"Exported {transcripts_no_introns} transcripts to {no_introns_path}")
+    logger.info(f"Exported {transcripts_yes_introns} transcripts to {yes_introns_path}")
     
     if transcripts_no_introns == 0 and transcripts_yes_introns == 0:
         raise ValueError("No transcripts with sequence data found in transcriptome")
@@ -398,7 +401,7 @@ def create_blast_databases(
             text=True,
             check=True
         )
-        print(f"Using makeblastdb version: {result.stdout.strip()}")
+        logger.info(f"Using makeblastdb version: {result.stdout.strip()}")
     except (subprocess.CalledProcessError, FileNotFoundError):
         raise FileNotFoundError(
             "makeblastdb not found. Please install BLAST+ tools and ensure they are in your PATH."
@@ -408,10 +411,10 @@ def create_blast_databases(
     no_introns_db = os.path.join(base_dir, "input", species_identifier, "transcriptome", "mRNA_no_introns", "mRNA_no_introns")
     yes_introns_db = os.path.join(base_dir, "input", species_identifier, "transcriptome", "mRNA_yes_introns", "mRNA_yes_introns")
 
-    print("Creating BLAST databases...")
+    logger.info("Creating BLAST databases...")
     
     # Create database for mature mRNA (no introns)
-    print(f"Creating database: {no_introns_db}")
+    logger.info(f"Creating database: {no_introns_db}")
     no_introns_command = [
         "makeblastdb",
         "-in", no_introns_fasta,
@@ -427,7 +430,7 @@ def create_blast_databases(
             text=True,
             check=True
         )
-        print("Mature mRNA database created successfully")
+        logger.info("Mature mRNA database created successfully")
         
     except subprocess.CalledProcessError as e:
         raise subprocess.CalledProcessError(
@@ -437,7 +440,7 @@ def create_blast_databases(
         )
     
     # Create database for pre-mRNA (with introns)
-    print(f"Creating database: {yes_introns_db}")
+    logger.info(f"Creating database: {yes_introns_db}")
     yes_introns_command = [
         "makeblastdb",
         "-in", yes_introns_fasta,
@@ -453,7 +456,7 @@ def create_blast_databases(
             text=True,
             check=True
         )
-        print("Pre-mRNA database created successfully")
+        logger.info("Pre-mRNA database created successfully")
         
     except subprocess.CalledProcessError as e:
         raise subprocess.CalledProcessError(
@@ -472,7 +475,7 @@ def create_blast_databases(
                 missing_files.append(f"{db_path}{ext}")
         
         if missing_files:
-            print(f"Warning: Some database files may be missing for {db_path}")
-            print(f"Missing files: {missing_files}")
+            logger.warning(f"Some database files may be missing for {db_path}")
+            logger.warning(f"Missing files: {missing_files}")
     
-    print("BLAST database creation completed")
+    logger.info("BLAST database creation completed")

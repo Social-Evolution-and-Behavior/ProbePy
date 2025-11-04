@@ -1,6 +1,9 @@
 import pickle
 import os
+import logging
 from probepy.transcriptomics.main import generate_transcriptome_object
+
+logger = logging.getLogger(__name__)
 
 def update_transcriptome_object(
         genome_path, 
@@ -26,7 +29,7 @@ def update_transcriptome_object(
 
     # If the output file exists and overwrite is False, raise an error
     if os.path.exists(output_path) and not overwrite:
-        print(f"File {output_path} already exists. Set overwrite=True to overwrite it.")
+        logger.warning(f"File {output_path} already exists. Set overwrite=True to overwrite it.")
         return  # Stop the update if we don't want to overwrite
 
     # Generate the transcriptome object
@@ -36,7 +39,7 @@ def update_transcriptome_object(
     with open(output_path, 'wb') as f:
         pickle.dump(transcriptome_obj, f)
     
-    print(f"Transcriptome object has been updated and saved to {output_path}")
+    logger.info(f"Transcriptome object has been updated and saved to {output_path}")
 
 
 # Load the transcriptome object from a file
@@ -47,11 +50,11 @@ def load_transcriptome_object(species_identifier, base_dir=""):
     try:
         with open(input_path, 'rb') as f:
             transcriptome_obj = pickle.load(f)
-        print(f"Loaded transcriptome object from {input_path}")
+        logger.info(f"Loaded transcriptome object from {input_path}")
         return transcriptome_obj
     except FileNotFoundError:
-        print(f"File {input_path} not found.")
-        print("Please run update_transcriptome_object() to generate the transcriptome object.")
+        logger.error(f"File {input_path} not found.")
+        logger.error("Please run update_transcriptome_object() to generate the transcriptome object.")
         return None
 
 
@@ -79,4 +82,4 @@ def check_exons_contain_all_features(transcriptome_obj):
             features = transcript.cds + transcript.utrs
             contains_all_features = verify_exons_contain_features(exons, features)
             if not contains_all_features: 
-                print(f"Gene {gene.name} transcript {transcript.name} does not contain all features in exons")
+                logger.warning(f"Gene {gene.name} transcript {transcript.name} does not contain all features in exons")

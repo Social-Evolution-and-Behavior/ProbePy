@@ -1,7 +1,10 @@
 from tqdm import tqdm 
+import logging
 from Bio import SeqIO
 from probepy.transcriptomics.classes import Transcriptome, Gene, Transcript, Exon, Intron, UTR, CDS 
 from probepy.transcriptomics.utils import get_sequence, gtf_to_dataframe
+
+logger = logging.getLogger(__name__)
 
 def generate_transcriptome_object(transcriptome_gtf_path, genome_fasta_path): 
     
@@ -25,7 +28,7 @@ def generate_transcriptome_object(transcriptome_gtf_path, genome_fasta_path):
 
     # Collect all unique genes based on gene_id column 
     unique_gene_ids = db['gene_id'].unique()
-    print(f"Found {len(unique_gene_ids)} unique genes.")
+    logger.info(f"Found {len(unique_gene_ids)} unique genes.")
 
     # Convert all "features" to lower case 
     db['feature'] = db['feature'].str.lower()
@@ -134,6 +137,6 @@ def generate_transcriptome_object(transcriptome_gtf_path, genome_fasta_path):
         transcriptome.add_gene(gene)
 
     # The transcriptome object is now populated with genes, transcripts, exons, etc.
-    print(transcriptome)
+    logger.info(transcriptome)
 
     return transcriptome 

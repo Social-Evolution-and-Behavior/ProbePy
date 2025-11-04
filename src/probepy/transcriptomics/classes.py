@@ -6,8 +6,11 @@ pipeline, including Transcriptome, Gene, Transcript, and genomic feature classes
 """
 
 from typing import Dict, List, Optional, Tuple, Union
+import logging
 import numpy as np
 from pygenomeviz import GenomeViz
+
+logger = logging.getLogger(__name__)
 
 
 class Transcriptome:
@@ -145,7 +148,7 @@ class Transcriptome:
         if len(partial_matches) == 1:
             return partial_matches[0]
         elif len(partial_matches) > 1:
-            print(f"Warning: Multiple partial matches found for {transcript_id}. Returning the first match.")
+            logger.warning(f"Multiple partial matches found for {transcript_id}. Returning the first match.")
             return partial_matches[0]
         
         # Return None if no match is found

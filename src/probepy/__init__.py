@@ -5,6 +5,15 @@ A comprehensive Python package for designing HCR-FISH probes compatible with
 the HCR v3.0 amplifier system.
 """
 
+# Import logging and set up package logger
+import logging
+
+# Create package logger
+logger = logging.getLogger(__name__)
+
+# Add a NullHandler by default so users can configure logging as they wish
+logger.addHandler(logging.NullHandler())
+
 # Import submodules for direct access
 import lazy_loader
 

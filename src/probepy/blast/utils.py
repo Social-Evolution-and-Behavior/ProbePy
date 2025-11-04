@@ -10,8 +10,11 @@ error handling and parameter management.
 import subprocess
 import sys
 import os
+import logging
 from typing import Union, Any, Optional
 from probepy.blast.install import ensure_blast_tools
+
+logger = logging.getLogger(__name__)
 
 def run_makeblastdb(
     input_fasta: str,
@@ -50,11 +53,11 @@ def run_makeblastdb(
     
     # Validate inputs
     if not os.path.exists(input_fasta):
-        print(f"Input FASTA file not found: {input_fasta}")
+        logger.error(f"Input FASTA file not found: {input_fasta}")
         return False
     
     if dbtype not in ['nucl', 'prot']:
-        print(f"Invalid dbtype: {dbtype}. Must be 'nucl' or 'prot'")
+        logger.error(f"Invalid dbtype: {dbtype}. Must be 'nucl' or 'prot'")
         return False
     
     # Build command
@@ -85,21 +88,21 @@ def run_makeblastdb(
             check=True,
             timeout=300  # 5 minute timeout
         )
-        print(f"Successfully created BLAST database: {output_name}")
+        logger.info(f"Successfully created BLAST database: {output_name}")
         if result.stdout.strip():
-            print(f"  {result.stdout.strip()}")
+            logger.debug(f"  {result.stdout.strip()}")
         return True
         
     except subprocess.CalledProcessError as e:
-        print(f"Error creating BLAST database:")
-        print(f"Command: {' '.join(cmd)}")
-        print(f"Return code: {e.returncode}")
+        logger.error(f"Error creating BLAST database:")
+        logger.error(f"Command: {' '.join(cmd)}")
+        logger.error(f"Return code: {e.returncode}")
         if e.stderr:
-            print(f"Error: {e.stderr.strip()}")
+            logger.error(f"Error: {e.stderr.strip()}")
         return False
         
     except subprocess.TimeoutExpired:
-        print(f"makeblastdb timed out after 5 minutes")
+        logger.error(f"makeblastdb timed out after 5 minutes")
         return False
 
 
@@ -176,7 +179,7 @@ def run_blastn(
     
     # Validate inputs
     if not os.path.exists(query):
-        print(f"Query file not found: {query}")
+        logger.error(f"Query file not found: {query}")
         return False
     
     # Check if database files exist
@@ -194,8 +197,8 @@ def run_blastn(
             break
     
     if not db_found:
-        print(f"BLAST database not found: {database}")
-        print(f"  Expected files like: {database}.nin, {database}.nhr, {database}.nsq")
+        logger.error(f"BLAST database not found: {database}")
+        logger.error(f"  Expected files like: {database}.nin, {database}.nhr, {database}.nsq")
         return False
     
     # Build command with common parameters
@@ -266,20 +269,20 @@ def run_blastn(
         )
         
         if output_file:
-            print(f"[OK] BLAST results saved to: {output_file}")
+            logger.info(f"[OK] BLAST results saved to: {output_file}")
             return True
         else:
             return result.stdout
             
     except subprocess.CalledProcessError as e:
-        print(f"BLASTN search failed:")
-        print(f"Command: {' '.join(cmd)}")
-        print(f"Return code: {e.returncode}")
+        logger.error(f"BLASTN search failed:")
+        logger.error(f"Command: {' '.join(cmd)}")
+        logger.error(f"Return code: {e.returncode}")
         if e.stderr:
-            print(f"Error: {e.stderr.strip()}")
+            logger.error(f"Error: {e.stderr.strip()}")
         return False
         
     except subprocess.TimeoutExpired:
-        print(f"BLASTN search timed out after 10 minutes")
-        print("Consider reducing the query size or using fewer threads")
+        logger.error(f"BLASTN search timed out after 10 minutes")
+        logger.error("Consider reducing the query size or using fewer threads")
         return False

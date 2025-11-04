@@ -6,6 +6,7 @@ including sequence manipulation and amplifier sequence retrieval.
 """
 
 import re
+import logging
 from typing import Tuple, List, Optional, Any
 import numpy as np
 import os
@@ -17,6 +18,8 @@ import matplotlib.pyplot as plt
 from probepy.blast.install import check_blast_tools
 from probepy.blast.utils import run_blastn
 from probepy.transcriptomics.classes import Gene, Transcriptome
+
+logger = logging.getLogger(__name__)
 
 
 def reverse_complement(sequence: str) -> str:
@@ -371,7 +374,7 @@ def blast_gene(
     if not success_yes_introns:
         raise Exception("BLAST against pre-mRNA database failed")
 
-    print(f"BLAST searches completed for {gene.name}. Results saved to {gene_seq_blast_output_dir}")
+    logger.info(f"BLAST searches completed for {gene.name}. Results saved to {gene_seq_blast_output_dir}")
     
     if permitted_off_targets is None:
         permitted_off_targets = []
@@ -471,8 +474,8 @@ def blast_gene(
     with open(output_fasta_path, 'w') as f:
         f.write(f">{gene.name}\n{sequence}")
 
-    print(f"Unique regions have been annotated and exported to {gene_seq_unique_regions_dir}")
-    print(f"Masked {len(off_targets)} off-target regions from {gene.name}")
+    logger.info(f"Unique regions have been annotated and exported to {gene_seq_unique_regions_dir}")
+    logger.info(f"Masked {len(off_targets)} off-target regions from {gene.name}")
 
 
 def get_probes_IDT(
@@ -528,18 +531,18 @@ def get_probes_IDT(
     except ValueError as e:
         raise ValueError(f"Probe design failed: {e}")
     
-    print(f"{len(probes)} probes designed for {gene.name} using amplifier {amplifier}")
+    logger.info(f"{len(probes)} probes designed for {gene.name} using amplifier {amplifier}")
 
     # Select subset of probes if needed
     np.random.seed(1)  # For reproducible selection
     if len(probes) <= n_probes:
         selected_indices = list(range(len(probes)))
-        print(f"Using all {len(probes)} available probes for {gene.name}")
+        logger.info(f"Using all {len(probes)} available probes for {gene.name}")
     else:
         selected_indices = np.random.choice(
             range(len(probes)), n_probes, replace=False
         ).tolist()
-        print(f"Randomly selected {n_probes} probes from {len(probes)} available for {gene.name}")
+        logger.info(f"Randomly selected {n_probes} probes from {len(probes)} available for {gene.name}")
 
     # Extract selected probes and regions
     selected_probes = [probes[i] for i in selected_indices]
@@ -573,7 +576,7 @@ def get_probes_IDT(
     
     try:
         idt_df.to_excel(idt_output_path, index=False)
-        print(f"Exported {len(probe_sequences)} probe sequences to {idt_output_path}")
+        logger.info(f"Exported {len(probe_sequences)} probe sequences to {idt_output_path}")
     except Exception as e:
         raise Exception(f"Failed to export IDT file: {e}")
 
@@ -597,7 +600,7 @@ def get_probes_IDT(
     
     try:
         regions_df.to_excel(regions_output_path, index=False)
-        print(f"Exported probe binding regions to {regions_output_path}")
+        logger.info(f"Exported probe binding regions to {regions_output_path}")
     except Exception as e:
         raise Exception(f"Failed to export regions file: {e}")
 
@@ -766,7 +769,7 @@ def get_probe_binding_regions_plot(
             output_path = os.path.join(output_dir, f"{gene.name}-probes.png")
             fig.savefig(output_path, bbox_inches='tight', dpi=300)
             
-            print(f"Probe binding regions plot exported to {output_path}")
+            logger.info(f"Probe binding regions plot exported to {output_path}")
         
         return fig
         
@@ -825,7 +828,7 @@ def check_probe_availability(
             raise ValueError(f"Gene '{gene_name}' does not have a target_sequence attribute")
 
         # Perform BLAST analysis and process results to identify off-target regions
-        print(f"Running BLAST analysis for {gene_name}...")
+        logger.info(f"Running BLAST analysis for {gene_name}...")
         blast_gene(
             gene_name,
             transcriptome,
@@ -835,27 +838,27 @@ def check_probe_availability(
         )
 
         # Design probes on unique regions using B1 amplifier
-        print(f"Designing HCR-FISH probes for {gene_name}...")
+        logger.info(f"Designing HCR-FISH probes for {gene_name}...")
         probes, regions, positions = design_hcr_probes(gene.unique_sequence, amplifier="B1")
 
         # Report results
         n_probes = len(probes)
-        print(f"Number of available probes for {gene_name}: {n_probes}")
+        logger.info(f"Number of available probes for {gene_name}: {n_probes}")
         
         if n_probes == 0:
-            print(f"Warning: No suitable probe regions found for {gene_name}")
-            print("This may be due to:")
-            print("  - Extensive off-target binding sites")
-            print("  - Poor sequence quality (gaps, extreme GC content)")
-            print("  - Short target sequence")
+            logger.warning(f"No suitable probe regions found for {gene_name}")
+            logger.warning("This may be due to:")
+            logger.warning("  - Extensive off-target binding sites")
+            logger.warning("  - Poor sequence quality (gaps, extreme GC content)")
+            logger.warning("  - Short target sequence")
         
         return n_probes
 
     except ValueError as e:
-        print(f"Error: {e}")
+        logger.error(f"Error: {e}")
         raise
     except Exception as e:
-        print(f"Unexpected error during probe availability check for {gene_name}: {e}")
+        logger.error(f"Unexpected error during probe availability check for {gene_name}: {e}")
         raise Exception(f"Probe availability check failed for {gene_name}: {e}")
     
 
@@ -970,6 +973,6 @@ def assign_target(
 
     # Assign to gene object
     gene.target_sequence = sequence
-    print(f"Assigned {sequence_type} sequence for gene '{gene_name}' from transcript '{transcript.name}' with length {len(sequence)} bp.")
+    logger.info(f"Assigned {sequence_type} sequence for gene '{gene_name}' from transcript '{transcript.name}' with length {len(sequence)} bp.")
 
     

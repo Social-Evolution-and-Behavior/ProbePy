@@ -15,7 +15,10 @@ import urllib.request
 import tarfile
 import zipfile
 import shutil
+import logging
 from typing import Dict, Union, Any
+
+logger = logging.getLogger(__name__)
 BLAST_VERSION="2.15.0"
 
 
@@ -59,14 +62,14 @@ def check_blast_tools() -> Dict[str, Dict[str, Union[bool, str, None]]]:
                 'available': True,
                 'version': version_line
             }
-            print(f"[OK] {tool}: {version_line}")
+            logger.info(f"[OK] {tool}: {version_line}")
             
         except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
             status[tool] = {
                 'available': False,
                 'version': None
             }
-            print(f"[NOT FOUND] {tool}: Not found")
+            logger.warning(f"[NOT FOUND] {tool}: Not found")
     
     return status
 
@@ -102,7 +105,7 @@ def ensure_blast_tools() -> bool:
         return True
         
     except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        print("BLAST+ tools not found. Please run probepy.install_blast_tools() to install them.")
+        logger.warning("BLAST+ tools not found. Please run probepy.install_blast_tools() to install them.")
         return False
 
 
@@ -168,8 +171,8 @@ def check_if_installed() -> bool:
             text=True,
             check=True
         )
-        print("[OK] BLAST+ tools are already installed:")
-        print(result.stdout.strip())
+        logger.info("[OK] BLAST+ tools are already installed:")
+        logger.info(result.stdout.strip())
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
@@ -201,7 +204,7 @@ def install_with_homebrew() -> bool:
             capture_output=True,
             check=True
         )
-        print("Installing BLAST+ using Homebrew...")
+        logger.info("Installing BLAST+ using Homebrew...")
         
         result = subprocess.run(
             [
@@ -214,13 +217,13 @@ def install_with_homebrew() -> bool:
         )
         
         if result.returncode == 0:
-            print("Successfully installed BLAST+ using Homebrew")
+            logger.info("Successfully installed BLAST+ using Homebrew")
             return True
         else:
-            print(f"Homebrew installation failed: {result.stderr}")
+            logger.error(f"Homebrew installation failed: {result.stderr}")
             return False
     except (subprocess.CalledProcessError, FileNotFoundError):
-        print("Homebrew not available, trying manual installation...")
+        logger.debug("Homebrew not available, trying manual installation...")
         return False
 
 
@@ -240,7 +243,7 @@ def install_with_apt() -> bool:
         ...     print("BLAST+ installed with apt")
     """
     try:
-        print("Installing BLAST+ using apt...")
+        logger.info("Installing BLAST+ using apt...")
         
         # Update package list
         subprocess.run(
@@ -266,13 +269,13 @@ def install_with_apt() -> bool:
         )
         
         if result.returncode == 0:
-            print("Successfully installed BLAST+ using apt")
+            logger.info("Successfully installed BLAST+ using apt")
             return True
         else:
-            print(f"Apt installation failed: {result.stderr}")
+            logger.error(f"Apt installation failed: {result.stderr}")
             return False
     except (subprocess.CalledProcessError, FileNotFoundError):
-        print("Apt not available, trying manual installation...")
+        logger.debug("Apt not available, trying manual installation...")
         return False
 
 
@@ -292,7 +295,7 @@ def manual_blast_install() -> bool:
         >>> if manual_blast_install():
         ...     print("BLAST+ installed successfully")
     """
-    print("Downloading BLAST+ directly from NCBI...")
+    logger.info("Downloading BLAST+ directly from NCBI...")
     
     try:
         system_type = get_system_info()
@@ -305,7 +308,7 @@ def manual_blast_install() -> bool:
             filename = f"ncbi-blast-{BLAST_VERSION}+-{system_type}.tar.gz"
             url = f"https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/{BLAST_VERSION}/{filename}"
         
-        print(f"Downloading {filename}...")
+        logger.info(f"Downloading {filename}...")
         
         # Create temporary directory
         temp_dir = "temp_blast_install"
@@ -326,11 +329,11 @@ def manual_blast_install() -> bool:
         
         # Extract and install
         if system_type.startswith("win"):
-            print("Windows installer downloaded. Please run the .exe file manually.")
-            print(f"File location: {os.path.abspath(file_path)}")
+            logger.info("Windows installer downloaded. Please run the .exe file manually.")
+            logger.info(f"File location: {os.path.abspath(file_path)}")
             return False
         else:
-            print("Extracting BLAST+ tools...")
+            logger.info("Extracting BLAST+ tools...")
             with tarfile.open(
                 file_path,
                 'r:gz'
@@ -387,8 +390,8 @@ def manual_blast_install() -> bool:
                         0o755
                     )
 
-            print(f"BLAST+ tools installed to {bin_dir}")
-            print(f"Make sure {bin_dir} is in your PATH environment variable")
+            logger.info(f"BLAST+ tools installed to {bin_dir}")
+            logger.info(f"Make sure {bin_dir} is in your PATH environment variable")
 
             # Add to PATH suggestion
             shell_rc = os.path.join(
@@ -402,15 +405,15 @@ def manual_blast_install() -> bool:
                 )
             
             shell_name = os.path.basename(shell_rc)
-            print(f"\nTo add to PATH, add this line to your {shell_name}:")
-            print(f'export PATH="$HOME/.local/bin:$PATH"')
+            logger.info(f"\nTo add to PATH, add this line to your {shell_name}:")
+            logger.info(f'export PATH="$HOME/.local/bin:$PATH"')
         
         # Cleanup
         shutil.rmtree(temp_dir)
         return True
         
     except Exception as e:
-        print(f"Manual installation failed: {e}")
+        logger.error(f"Manual installation failed: {e}")
         return False
 
 
@@ -434,10 +437,10 @@ def install_blast_tools() -> None:
     
     # Check if already installed
     if check_if_installed():
-        print("BLAST+ tools are already installed.")
+        logger.info("BLAST+ tools are already installed.")
         return
 
-    print("BLAST+ tools not found. Installing...")
+    logger.info("BLAST+ tools not found. Installing...")
 
     system = platform.system()
     
@@ -454,18 +457,18 @@ def install_blast_tools() -> None:
     
     # Fallback to manual installation
     if not success:
-        print("Trying manual installation...")
+        logger.info("Trying manual installation...")
         success = manual_blast_install()
     
     # Final check
     if success:
-        print("\nChecking installation...")
+        logger.info("\nChecking installation...")
         if check_if_installed():
-            print("BLAST+ tools successfully installed!")
+            logger.info("BLAST+ tools successfully installed!")
         else:
-            print("Installation completed but tools not found in PATH.")
-            print("You may need to restart your terminal or update your PATH.")
+            logger.warning("Installation completed but tools not found in PATH.")
+            logger.warning("You may need to restart your terminal or update your PATH.")
     else:
-        print("Installation failed. Please install BLAST+ manually from:")
-        print("https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download")
+        logger.error("Installation failed. Please install BLAST+ manually from:")
+        logger.error("https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download")
 
