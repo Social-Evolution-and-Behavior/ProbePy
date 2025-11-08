@@ -12,6 +12,7 @@ __getattr__, __dir__, __all__ = lazy_loader.attach(
             'create_blast_databases',
             'download_with_rsync',
             'export_mrna_to_fasta',
+            'logger',
         ],
         'utils': [
             'assign_target',
@@ -21,8 +22,11 @@ __getattr__, __dir__, __all__ = lazy_loader.attach(
             'get_amplifier',
             'get_probe_binding_regions_plot',
             'get_probes_IDT',
+            'load_genome',
+            'logger',
             'reverse_complement',
             'reverse_string',
+            'set_logging_level',
         ],
     },
 )
@@ -30,5 +34,6 @@ __getattr__, __dir__, __all__ = lazy_loader.attach(
 __all__ = ['assign_target', 'blast_gene', 'check_probe_availability',
            'create_blast_databases', 'design_hcr_probes',
            'download_with_rsync', 'export_mrna_to_fasta', 'get_amplifier',
-           'get_probe_binding_regions_plot', 'get_probes_IDT', 'prep',
-           'reverse_complement', 'reverse_string', 'utils']
+           'get_probe_binding_regions_plot', 'get_probes_IDT', 'load_genome',
+           'logger', 'prep', 'reverse_complement', 'reverse_string',
+           'set_logging_level', 'utils']

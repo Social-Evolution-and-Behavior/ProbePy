@@ -21,6 +21,38 @@ from probepy.transcriptomics.classes import Gene, Transcriptome
 
 logger = logging.getLogger(__name__)
 
+# set up logging and options to change logging level
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+
+def set_logging_level(level: str) -> None:
+    """
+    Sets the logging level for the logger.
+
+    Parameters
+    ----------
+    level : str
+        The logging level to set. Options are 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'.
+    """
+    logging_levels = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "CRITICAL": logging.CRITICAL,
+    }
+    if level in logging_levels:
+        logging.getLogger().setLevel(logging_levels[level])
+    else:
+        raise ValueError(
+            f"Invalid logging level: {level}. Choose from {list(logging_levels.keys())}."
+        )
+
+
 
 def reverse_complement(sequence: str) -> str:
     """
@@ -485,6 +517,7 @@ def get_probes_IDT(
     amplifier: str = "B1",
     n_probes: int = 30,
     base_dir: str = "",
+    alt_name: Optional[str] = None
 ) -> None:
     """
     Design HCR-FISH probes and export them in IDT-compatible format.
@@ -514,6 +547,7 @@ def get_probes_IDT(
     """
 
     gene = transcriptome.get_gene(gene_name)
+    gene_name = alt_name if alt_name else gene.name 
 
     if gene is None:
         raise ValueError(f"Gene '{gene_name}' not found in transcriptome.")
@@ -530,19 +564,19 @@ def get_probes_IDT(
         probes, regions, positions = design_hcr_probes(gene.unique_sequence, amplifier)
     except ValueError as e:
         raise ValueError(f"Probe design failed: {e}")
-    
-    logger.info(f"{len(probes)} probes designed for {gene.name} using amplifier {amplifier}")
+
+    logger.info(f"{len(probes)} probes designed for {gene_name} using amplifier {amplifier}")
 
     # Select subset of probes if needed
     np.random.seed(1)  # For reproducible selection
     if len(probes) <= n_probes:
         selected_indices = list(range(len(probes)))
-        logger.info(f"Using all {len(probes)} available probes for {gene.name}")
+        logger.info(f"Using all {len(probes)} available probes for {gene_name}")
     else:
         selected_indices = np.random.choice(
             range(len(probes)), n_probes, replace=False
         ).tolist()
-        logger.info(f"Randomly selected {n_probes} probes from {len(probes)} available for {gene.name}")
+        logger.info(f"Randomly selected {n_probes} probes from {len(probes)} available for {gene_name}")
 
     # Extract selected probes and regions
     selected_probes = [probes[i] for i in selected_indices]
@@ -565,12 +599,12 @@ def get_probes_IDT(
     os.makedirs(idt_output_dir, exist_ok=True)
     
     idt_output_path = os.path.join(
-        idt_output_dir, f"{gene.name}-{amplifier}-{timestamp}.xlsx"
+        idt_output_dir, f"{gene_name}-{amplifier}-{timestamp}.xlsx"
     )
     
     # Create IDT-formatted DataFrame
     idt_df = pd.DataFrame({
-        'Pool name': [f'{gene.name}-{amplifier}'] * len(probe_sequences),
+        'Pool name': [f'{gene_name}-{amplifier}'] * len(probe_sequences),
         'Sequence': probe_sequences
     })
     
@@ -587,12 +621,12 @@ def get_probes_IDT(
     os.makedirs(regions_output_dir, exist_ok=True)
     
     regions_output_path = os.path.join(
-        regions_output_dir, f"{gene.name}-{amplifier}-regions-{timestamp}.xlsx"
+        regions_output_dir, f"{gene_name}-{amplifier}-regions-{timestamp}.xlsx"
     )
     
     # Create probe regions DataFrame
     regions_df = pd.DataFrame({
-        'Gene': [gene.name] * len(selected_probes),
+        'Gene': [gene_name] * len(selected_probes),
         'Region': selected_regions,
         'Probe 1': [probe_pair[0] for probe_pair in selected_probes],
         'Probe 2': [probe_pair[1] for probe_pair in selected_probes]
@@ -603,6 +637,45 @@ def get_probes_IDT(
         logger.info(f"Exported probe binding regions to {regions_output_path}")
     except Exception as e:
         raise Exception(f"Failed to export regions file: {e}")
+
+
+def load_genome(
+    base_dir: str,
+    species_identifier: str
+) -> dict:
+    """
+    Load genome FASTA file for a given species.
+    
+    Parameters:
+        base_dir (str): Base directory for input files
+        species_identifier (str): Species identifier for file organization
+    Returns:
+        dict: Dictionary of genome sequences keyed by sequence IDs
+    """
+
+    # Load genome sequence
+    genome_fasta_dir = os.path.join(base_dir, "input", species_identifier, "genome")
+
+    # Look for a file ending with .fa or .fasta
+    genome_fasta_path = None
+    for file in os.listdir(genome_fasta_dir):
+        if file.endswith('.fa') or file.endswith('.fasta'):
+            genome_fasta_path = os.path.join(genome_fasta_dir, file)
+            break
+
+    if genome_fasta_path is None:
+        raise FileNotFoundError(f"No genome FASTA file found in {genome_fasta_dir}")
+
+     # Load genome sequences into a dictionary
+    try:
+        genome_seq = SeqIO.to_dict(SeqIO.parse(genome_fasta_path, "fasta"))
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Genome FASTA file not found: {genome_fasta_path}")
+    except Exception as e:
+        raise Exception(f"Failed to load genome sequence: {e}")
+
+    return genome_seq
+
 
 
 def get_probe_binding_regions_plot(
@@ -654,25 +727,7 @@ def get_probe_binding_regions_plot(
     regions = gene.regions
 
     # Load genome sequence
-    genome_fasta_dir = os.path.join(base_dir, "input", species_identifier, "genome")
-
-    # Look for a file ending with .fa or .fasta
-    genome_fasta_path = None
-    for file in os.listdir(genome_fasta_dir):
-        if file.endswith('.fa') or file.endswith('.fasta'):
-            genome_fasta_path = os.path.join(genome_fasta_dir, file)
-            break
-
-    if genome_fasta_path is None:
-        raise FileNotFoundError(f"No genome FASTA file found in {genome_fasta_dir}")
-
-     # Load genome sequences into a dictionary
-    try:
-        genome_seq = SeqIO.to_dict(SeqIO.parse(genome_fasta_path, "fasta"))
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Genome FASTA file not found: {genome_fasta_path}")
-    except Exception as e:
-        raise Exception(f"Failed to load genome sequence: {e}")
+    genome_seq = load_genome(base_dir, species_identifier)
 
     try:
         # Initialize genomic visualization
@@ -869,7 +924,8 @@ def assign_target(
         sequence_type: str = 'mRNA',
         transcript_id: Optional[str] = None,
         use_longest_cds: bool = True,
-        use_longest_bounds: bool = False
+        use_longest_bounds: bool = False,
+        target_sequence: Optional[str] = None,
 ) -> None:
     """
     Assign a target sequence to a gene from its transcriptome.
@@ -934,6 +990,16 @@ def assign_target(
         - The function prints informational output showing the selected transcript and 
           sequence length.
     """
+
+    # If target_sequence is provided directly, assign it and return
+    if target_sequence is not None:
+        gene = transcriptome.get_gene(gene_name)
+        if gene is None:
+            raise ValueError(f"Gene '{gene_name}' not found in transcriptome.")
+        gene.target_sequence = target_sequence
+        logger.info(f"Assigned provided target sequence for gene '{gene_name}' with length {len(target_sequence)} bp.")
+        return
+    
     # Validate sequence type
     if sequence_type not in ['mRNA', 'DNA']:
         raise ValueError("Invalid sequence_type. Must be 'mRNA' or 'DNA'.")
