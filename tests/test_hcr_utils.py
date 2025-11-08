@@ -613,16 +613,17 @@ class TestAssignTarget:
                 assert isinstance(regions, list)
                 assert isinstance(positions, list)
     
-    def test_assign_target_print_output(self, sample_transcriptome, capsys):
+    def test_assign_target_print_output(self, sample_transcriptome, caplog):
         """Test that assign_target prints informational output."""
+        import logging
+        caplog.set_level(logging.INFO)
+        
         assign_target("Or9a", sample_transcriptome)
         
-        captured = capsys.readouterr()
-        
         # Check that output contains expected information
-        assert "Assigned" in captured.out
-        assert "Or9a" in captured.out
-        assert "bp" in captured.out
+        assert "Assigned" in caplog.text
+        assert "Or9a" in caplog.text
+        assert "bp" in caplog.text
     
     def test_assign_target_sequence_length_match(self, sample_transcriptome):
         """Test that assigned sequence length matches transcript."""

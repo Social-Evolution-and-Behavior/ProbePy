@@ -318,15 +318,14 @@ class TestCheckExonsContainAllFeatures:
         # Should not print any error messages
         assert "does not contain all features" not in captured.out
     
-    def test_invalid_structure_prints_warning(self, invalid_transcriptome, capsys):
+    def test_invalid_structure_prints_warning(self, invalid_transcriptome, caplog):
         """Test that invalid structure prints warning."""
         check_exons_contain_all_features(invalid_transcriptome)
         
-        captured = capsys.readouterr()
         # Should print warning about features not in exons
-        assert "does not contain all features" in captured.out
-        assert "TestGene" in captured.out
-        assert "TRANS001" in captured.out
+        assert "does not contain all features" in caplog.text
+        assert "TestGene" in caplog.text
+        assert "TRANS001" in caplog.text
     
     def test_empty_transcriptome(self):
         """Test with empty transcriptome."""
