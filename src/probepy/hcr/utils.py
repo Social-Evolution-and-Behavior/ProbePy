@@ -683,7 +683,8 @@ def get_probe_binding_regions_plot(
     transcriptome: Transcriptome,
     base_dir: str,
     species_identifier: str,
-    save: bool = True
+    save: bool = True,
+    alt_name: Optional[str] = None
 ) -> plt.Figure:
     """
     Generate and return a genomic visualization of probe binding regions.
@@ -814,14 +815,15 @@ def get_probe_binding_regions_plot(
 
         # Generate plot
         fig = gv.plotfig()
-        plt.title(f"{gene.name} HCR-FISH Probe Binding Sites", y=1.8, fontsize=16)
+        gene_name = alt_name if alt_name else gene.name
+        plt.title(f"{gene_name} HCR-FISH Probe Binding Sites", y=1.8, fontsize=16)
         
         # Save to disk if requested
         if save:
             output_dir = os.path.join(base_dir, "output", species_identifier, 'probe_regions_plot')
             os.makedirs(output_dir, exist_ok=True)
-            
-            output_path = os.path.join(output_dir, f"{gene.name}-probes.png")
+
+            output_path = os.path.join(output_dir, f"{gene_name}-probes.png")
             fig.savefig(output_path, bbox_inches='tight', dpi=300)
             
             logger.info(f"Probe binding regions plot exported to {output_path}")

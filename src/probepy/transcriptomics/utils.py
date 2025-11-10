@@ -77,7 +77,7 @@ def gtf_to_dataframe(gtf_file):
 
     # If gene_id is empty, throw error 
     if df['gene_id'].isnull().any():
-        raise ValueError("Some entries are missing gene_id in the GTF file.")
+        raise ValueError(f"Some entries are missing gene_id in the GTF file.")
 
     return df
 
