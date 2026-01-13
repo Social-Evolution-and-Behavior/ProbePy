@@ -13,8 +13,21 @@ A comprehensive Python package for designing custom fluorescent *in situ* hybrid
 - **Comprehensive visualization**: Generate publication-ready plots showing probe locations on gene structures
 - **Flexible output formats**: Export probes in IDT-compatible Excel format for direct ordering
 
-## Installation
+### Install Poetry 
 
+Please follow the instructions [here](https://python-poetry.org/docs/) to install Poetry. 
+
+### Install NCBI BLAST+ tools
+
+Install [BLAST Command Line Tools 2.15.0](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.15.0/) from here. 
+If running on a Mac, just use the installer `ncbi-blast-2.15.0+.dmg` 
+
+**IMPORTANT**: Do not leave any spaces " " in the path to your project directory. It will break the BLAST toolkit. 
+
+
+## Install ProbePy
+
+Clone: 
 ```bash
 git clone https://github.com/Social-Evolution-and-Behavior/ProbePy.git
 cd ProbePy 
@@ -22,13 +35,13 @@ cd ProbePy
 
 Optionally install the environment in your home directory: 
 
-```
+```bash
 poetry config virtualenvs.in-project false
 poetry config virtualenvs.path ~/.poetryvirtualenvs
 ```
 
 Install: 
-```
+```bash
 poetry lock
 poetry install 
 ```
@@ -36,19 +49,6 @@ poetry install
 **Requirements:** Python 3.11+, Poetry, NCBI BLAST+ command line tools
 
 
-### Install NCBI BLAST+ tools
-
-The package facilitates the installation of NCBI BLAST+ command line tools. 
-
-```python
-import probepy
-probepy.install_blast_tools()
-```
-
-Alternatively, you can install it yourself: 
-- **macOS**: `brew install blast`
-- **Ubuntu/Debian**: `sudo apt-get install ncbi-blast+`
-- **Windows**: Download from [NCBI BLAST+](https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/)
 
 ## Quick Start
 
