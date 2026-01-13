@@ -18,10 +18,23 @@ A comprehensive Python package for designing custom fluorescent *in situ* hybrid
 ```bash
 git clone https://github.com/Social-Evolution-and-Behavior/ProbePy.git
 cd ProbePy 
-poetry install
+```
+
+Optionally install the environment in your home directory: 
+
+```
+poetry config virtualenvs.in-project false
+poetry config virtualenvs.path ~/.poetryvirtualenvs
+```
+
+Install: 
+```
+poetry lock
+poetry install 
 ```
 
 **Requirements:** Python 3.11+, Poetry, NCBI BLAST+ command line tools
+
 
 ### Install NCBI BLAST+ tools
 
