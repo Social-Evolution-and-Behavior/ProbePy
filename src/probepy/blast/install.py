@@ -105,7 +105,7 @@ def ensure_blast_tools() -> bool:
         return True
         
     except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        logger.warning("BLAST+ tools not found. Please run probepy.install_blast_tools() to install them.")
+        logger.warning("BLAST+ tools not found. Please install BLAST+ tools before continuing.")
         return False
 
 
@@ -415,60 +415,3 @@ def manual_blast_install() -> bool:
     except Exception as e:
         logger.error(f"Manual installation failed: {e}")
         return False
-
-
-def install_blast_tools() -> None:
-    """
-    Main installation function for BLAST+ tools.
-    
-    Orchestrates the complete installation process for BLAST+ tools. Checks if
-    the tools are already installed, then attempts system-specific installation
-    methods (Homebrew on macOS, apt on Linux) before falling back to manual
-    installation from NCBI. Performs a final verification after installation
-    completes.
-    
-    Returns:
-        None: Prints status messages to stdout and stderr.
-        
-    Examples:
-        >>> install_blast_tools()
-        # Installs BLAST+ and provides status updates
-    """
-    
-    # Check if already installed
-    if check_if_installed():
-        logger.info("BLAST+ tools are already installed.")
-        return
-
-    logger.info("BLAST+ tools not found. Installing...")
-
-    system = platform.system()
-    
-    # Try different installation methods based on the system
-    success = False
-    
-    # System-specific package managers
-    if system == "Darwin":  # macOS
-        if install_with_homebrew():
-            success = True
-    elif system == "Linux":
-        if install_with_apt():
-            success = True
-    
-    # Fallback to manual installation
-    if not success:
-        logger.info("Trying manual installation...")
-        success = manual_blast_install()
-    
-    # Final check
-    if success:
-        logger.info("\nChecking installation...")
-        if check_if_installed():
-            logger.info("BLAST+ tools successfully installed!")
-        else:
-            logger.warning("Installation completed but tools not found in PATH.")
-            logger.warning("You may need to restart your terminal or update your PATH.")
-    else:
-        logger.error("Installation failed. Please install BLAST+ manually from:")
-        logger.error("https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download")
-

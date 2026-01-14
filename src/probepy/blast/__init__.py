@@ -14,7 +14,6 @@ __getattr__, __dir__, __all__ = lazy_loader.attach(
             'check_if_installed',
             'ensure_blast_tools',
             'get_system_info',
-            'install_blast_tools',
             'install_with_apt',
             'install_with_homebrew',
             'logger',
@@ -30,6 +29,5 @@ __getattr__, __dir__, __all__ = lazy_loader.attach(
 
 __all__ = ['BLAST_VERSION', 'check_blast_tools', 'check_if_installed',
            'ensure_blast_tools', 'get_system_info', 'install',
-           'install_blast_tools', 'install_with_apt', 'install_with_homebrew',
-           'logger', 'manual_blast_install', 'run_blastn', 'run_makeblastdb',
-           'utils']
+           'install_with_apt', 'install_with_homebrew', 'logger',
+           'manual_blast_install', 'run_blastn', 'run_makeblastdb', 'utils']

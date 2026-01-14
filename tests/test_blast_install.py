@@ -19,8 +19,7 @@ from probepy.blast.install import (
     check_if_installed,
     install_with_homebrew,
     install_with_apt,
-    manual_blast_install,
-    install_blast_tools
+    manual_blast_install
 )
 
 
@@ -443,97 +442,6 @@ class TestManualBlastInstall:
         result = manual_blast_install()
         
         assert result is False
-
-
-class TestInstallBlastTools:
-    """Test main installation orchestration function."""
-    
-    @patch('probepy.blast.install.check_if_installed')
-    def test_already_installed(self, mock_check):
-        """Test when BLAST is already installed."""
-        mock_check.return_value = True
-        
-        install_blast_tools()
-        
-        # Should return early without attempting installation
-        mock_check.assert_called_once()
-    
-    @patch('probepy.blast.install.check_if_installed')
-    @patch('probepy.blast.install.install_with_homebrew')
-    @patch('platform.system')
-    def test_macos_homebrew_success(self, mock_platform, mock_homebrew, mock_check):
-        """Test successful installation on macOS with Homebrew."""
-        mock_check.side_effect = [False, True]  # Not installed, then installed
-        mock_platform.return_value = "Darwin"
-        mock_homebrew.return_value = True
-        
-        install_blast_tools()
-        
-        mock_homebrew.assert_called_once()
-    
-    @patch('probepy.blast.install.check_if_installed')
-    @patch('probepy.blast.install.install_with_apt')
-    @patch('platform.system')
-    def test_linux_apt_success(self, mock_platform, mock_apt, mock_check):
-        """Test successful installation on Linux with apt."""
-        mock_check.side_effect = [False, True]  # Not installed, then installed
-        mock_platform.return_value = "Linux"
-        mock_apt.return_value = True
-        
-        install_blast_tools()
-        
-        mock_apt.assert_called_once()
-    
-    @patch('probepy.blast.install.check_if_installed')
-    @patch('probepy.blast.install.install_with_homebrew')
-    @patch('probepy.blast.install.manual_blast_install')
-    @patch('platform.system')
-    def test_fallback_to_manual(self, mock_platform, mock_manual, mock_homebrew, mock_check):
-        """Test fallback to manual installation when package manager fails."""
-        mock_check.side_effect = [False, True]  # Not installed, then installed
-        mock_platform.return_value = "Darwin"
-        mock_homebrew.return_value = False  # Homebrew fails
-        mock_manual.return_value = True  # Manual succeeds
-        
-        install_blast_tools()
-        
-        mock_homebrew.assert_called_once()
-        mock_manual.assert_called_once()
-    
-    @patch('probepy.blast.install.check_if_installed')
-    @patch('probepy.blast.install.install_with_homebrew')
-    @patch('probepy.blast.install.manual_blast_install')
-    @patch('platform.system')
-    def test_all_installation_methods_fail(self, mock_platform, mock_manual, 
-                                          mock_homebrew, mock_check):
-        """Test when all installation methods fail."""
-        mock_check.return_value = False  # Never installed
-        mock_platform.return_value = "Darwin"
-        mock_homebrew.return_value = False
-        mock_manual.return_value = False
-        
-        install_blast_tools()
-        
-        # Should try both methods
-        mock_homebrew.assert_called_once()
-        mock_manual.assert_called_once()
-    
-    @patch('probepy.blast.install.check_if_installed')
-    @patch('probepy.blast.install.install_with_apt')
-    @patch('probepy.blast.install.manual_blast_install')
-    @patch('platform.system')
-    def test_installation_success_but_not_in_path(self, mock_platform, mock_manual,
-                                                  mock_apt, mock_check):
-        """Test when installation succeeds but tools not found in PATH."""
-        mock_check.return_value = False  # Not found in PATH
-        mock_platform.return_value = "Linux"
-        mock_apt.return_value = False
-        mock_manual.return_value = True  # Installation reports success
-        
-        install_blast_tools()
-        
-        # Should attempt installation and final check
-        assert mock_check.call_count >= 2
 
 
 class TestIntegration:

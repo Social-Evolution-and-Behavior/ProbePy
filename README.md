@@ -13,6 +13,8 @@ A comprehensive Python package for designing custom fluorescent *in situ* hybrid
 - **Comprehensive visualization**: Generate publication-ready plots showing probe locations on gene structures
 - **Flexible output formats**: Export probes in IDT-compatible Excel format for direct ordering
 
+## Installation
+
 ### Install Poetry 
 
 Please follow the instructions [here](https://python-poetry.org/docs/) to install Poetry. 
@@ -25,7 +27,7 @@ If running on a Mac, just use the installer `ncbi-blast-2.15.0+.dmg`
 **IMPORTANT**: Do not leave any spaces " " in the path to your project directory. It will break the BLAST toolkit. 
 
 
-## Install ProbePy
+### Install ProbePy
 
 Clone: 
 ```bash
@@ -120,3 +122,9 @@ The probe design follows these key principles:
 - Visualization powered by pygenomeviz 
 
 
+### Development 
+
+After making changes please run 
+```
+poetry run mkinit --lazy_loader src/probepy --recursive --inplace 
+```
