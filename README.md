@@ -45,7 +45,7 @@ poetry config virtualenvs.path ~/.poetryvirtualenvs
 Install: 
 ```bash
 poetry lock
-poetry install 
+poetry install --with dev,notebook,docs -v
 ```
 
 **Requirements:** Python 3.11+, Poetry, NCBI BLAST+ command line tools
