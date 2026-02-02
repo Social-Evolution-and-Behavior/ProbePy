@@ -939,9 +939,9 @@ def assign_target(
     Args:
         gene_name (str): Name or identifier of the target gene
         transcriptome (Transcriptome): Transcriptome object containing gene annotations
-        sequence_type (str, optional): Type of sequence to extract. Either 'mRNA' 
-            (mature transcript without introns) or 'DNA' (genomic DNA with introns). 
-            Defaults to 'mRNA'.
+        sequence_type (str, optional): Type of sequence to extract. Options are 'mRNA' 
+            (mature transcript without introns), 'DNA' (genomic DNA with introns), or 
+            'CDS' (coding sequence without introns). Defaults to 'mRNA'.
         transcript_id (Optional[str], optional): Specific transcript ID to use. If provided,
             this transcript will be selected regardless of use_longest_cds or 
             use_longest_bounds settings. Defaults to None.
@@ -956,7 +956,7 @@ def assign_target(
         None: Stores the selected sequence in gene.target_sequence attribute.
     
     Raises:
-        ValueError: If sequence_type is not 'mRNA' or 'DNA'
+        ValueError: If sequence_type is not 'mRNA', 'DNA', or 'CDS'
         ValueError: If both use_longest_cds and use_longest_bounds are True
         ValueError: If transcript_id is specified along with use_longest_cds or use_longest_bounds
         ValueError: If gene is not found in transcriptome
@@ -1003,8 +1003,8 @@ def assign_target(
         return
     
     # Validate sequence type
-    if sequence_type not in ['mRNA', 'DNA']:
-        raise ValueError("Invalid sequence_type. Must be 'mRNA' or 'DNA'.")
+    if sequence_type not in ['mRNA', 'DNA', 'CDS']:
+        raise ValueError("Invalid sequence_type. Must be 'mRNA', 'DNA', or 'CDS'.")
 
     # Validate mutually exclusive parameters
     if use_longest_cds and use_longest_bounds:
@@ -1037,7 +1037,16 @@ def assign_target(
             raise ValueError(f"Transcript ID '{transcript_id}' not found for gene '{gene_name}'.")
     
     # Extract appropriate sequence type
-    sequence = transcript.mrna_sequence if sequence_type == 'mRNA' else transcript.dna_sequence
+    if sequence_type == 'mRNA':
+        sequence = transcript.mrna_sequence
+    elif sequence_type == 'DNA':
+        sequence = transcript.dna_sequence
+    else:  # sequence_type == 'CDS'
+        sequence = transcript.cds_sequence
+
+    # Validate sequence exists and is not empty
+    if not sequence:
+        raise ValueError(f"No valid {sequence_type} sequence found for transcript '{transcript.name}'. The sequence is empty.")
 
     # Assign to gene object
     gene.target_sequence = sequence
